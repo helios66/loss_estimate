@@ -4,6 +4,9 @@ I wrote a passive packetloss estimator using the MAPI platform, codes and execut
 
 ##Installation Procedure
 -------------------------
-command($./configure)
-command($make)
-command($make install)
+run:
+	$./configure
+	
+	$make
+	
+	$make install
