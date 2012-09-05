@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Given the C source of a MAPI function, build a suitable MAPI module out of it.
+
+trap 'exit $?' ERR
+
+CC=@CC@
+RULER=@abs_top_builddir@/ruler
+#CFLAGS="@CFLAGS@ -O3 -W -Wall -shared -I$MAPI_DIR/include -I$MAPI_SRC_DIR -I$MAPI_SRC_DIR/drivers -fPIC"
+CFLAGS="@CFLAGS@ -O3 -W -Wall -shared -I.. -I../drivers -I../common -fPIC"

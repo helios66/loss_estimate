@@ -1,0 +1,13 @@
+This package provides a library to parse the subset of Berkeley Packet Filter
+(BPF) expression language into the target independent node tree. Parser is
+based on the libpcap library source.
+
+Also some output routines are provided either:
+
+   1) to create a filter for COMBO6 network adaptors,
+
+   2) to create a XML configuration for Endace DAG network capturing cards using
+      the DSM filtering.
+
+For more details see the manpage bpf2dagdsm.1 and script test_bpf2dagdsm for
+example usage.

@@ -1,0 +1,81 @@
+ipfixlib was based on Luca Deri's nprobe. The basis for ipfixlib is a
+version from 2003.
+
+Flow export is invoked like this:
+
+funct_id = mapi_apply_function(fd,"FLOW_REPORT", "IPFIX", "SHMEM",
+     "", tbuf);
+
+parameter 1: flow ID.
+parameter 2: MAPI function:    "FLOW_REPORT"
+parameter 3: record type:      "NETFLOW_V5", "NETFLOW_V9" or "IPFIX"
+parameter 4: transport:        string, see below
+parameter 5: key template:     string, not yet in use.
+parameter 6: record template   string, NetFlow V9/IPFIX only.
+
+Transport can be
+   "SHMEM" - shared memory
+   UDP host:port, e.g. "127.0.0.1:2055"
+   A file - "file:<filename>", e.g. "file:/tmp/myflows"
+
+SCTP transport can be realized by means of a client program which
+receives IPFIX records over shared memory and exports them over SCTP.
+
+The record template for IPFIX/NetFlowV9  is selected by a format string,
+e.g. "%PKTS %BYTES %TOS %IP_SRC_ADDR %IP_DST_ADDR".
+
+Here are the supported IPFIX/NetFlowV9 elements:
+
+ID    LENGTH	MAPI-NAME	   	NAME (ipfix)
+ 1 	8	BYTES			octetDeltaCount	  	
+ 2 	8	PKTS			packetDeltaCount	
+ 4 	1	PROT			protocolIdentifier 
+ 5 	1	TOS			classOfServiceIPv4	
+ 6 	1	TCP_FLAGS		tcpControlBits		
+ 7	2	L4_SRC_PORT		sourceTransportPort	
+ 8 	4	IP_SRC_ADDR		sourceIPv4Address	
+10 	2	INPUT_SNMP		ingressInterface	(stub)
+11 	2	L4_DST_PORT		destinationTransportPort
+12 	4	IP_DST_ADDR		destinationIPv4Address	
+14 	2	OUTPUT_SNMP		egressInterface		(stub)	
+16 	2	SRC_AS			bgpSourceAsNumber		
+17 	2	DST_AS			bgpDestinationAsNumber	
+21 	4	LAST_SWITCHED		flowEndSysUpTime		
+22 	4	FIRST_SWITCHED		flowStartSysUpTime		
+25 	2	MIN_PKT_LNGTH		minimumPacketLength		
+26 	2	MAX_PKT_LNGTH		maximumPacketLength		
+27 	16	IPV6_SRC_ADDR		sourceIPv6Address		
+28 	16	IPV6_DST_ADDR		destinationIPv6Address		
+40 	8	TOTAL_BYTES_EXP		exportedOctetTotalCount		
+41 	8	TOTAL_PKTS_EXP		exportedMessageTotalCount	
+52	1	MIN_TTL			minimumTtl			
+53	1	MAX_TTL			maximumTtl			
+64 	4	IPV6_OPTION_HEADERS	ipv6OptionHeaders		
+130	4	EXPORTER_IPV4		exporterIPv4Address		
+131	16	EXPORTER_IPV6		exporterIPv6Address		
+136	1	FLOW_END_REASON		flowEndReason			
+145	4	TEMPLATE_ID		templateId
+148	4	FLOW_ID			flowId				
+150	4	FLOW_START_SECONDS	flowStartSeconds		
+151	4	FLOW_END_SECONDS	flowEndSeconds			
+152	8	FLOW_START_MILLISECONDS flowStartMilliSeconds		
+153	8	FLOW_END_MILLISECONDS	flowEndMilliSeconds		
+154	8	FLOW_START_MICROSECONDS flowStartMicroSeconds		
+155	8	FLOW_END_MICROSECONDS	flowEndMicroSeconds		
+156	8	FLOW_START_NANOSECONDS  flowStartNanoSeconds		
+157	8	FLOW_END_NANOSECONDS	flowEndNanoSeconds		
+160	8	SYSINIT_MLILIS		systemInitTimeMilliSecond	
+161	8	FLOW_DUR_MILLIS		flowDurationMilliSeconds	
+162	8	FLOW_DUR_MICROS		flowDurationMicroSeconds	
+163	8	NUM_FLOWS_OBSERVED	observedFlowTotalCount		
+164	8	NUM_IGNORED_PKT		ignoredPacketTotalCount		
+165	8	NUM_IGNORED_OCTETS	ignoredOctetTotalCount		
+166	8	NOTSENT_FLOWS		notSentFlowTotalCount		
+167	8	NOTSENT_PKTS		notSentPacketTotalCount		
+168	8	NOTSENT_OCTETS		notSentOctetTotalCount		
+190	2	PKTLEN_IPV4		packetLengthIPv4
+191	4	PKTLEN_IPV6		payloadLengthIPv6
+207	1	HDRLEN_IPV4		headerLengthIPv4
+208	8	IPV4_OPT		ipv4Options
+210	1	PADDING			paddingOneOctet
+

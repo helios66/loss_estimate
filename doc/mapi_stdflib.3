@@ -1,0 +1,394 @@
+.\" MAPI man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapi_stdflib.3 |less
+.\"
+.TH MAPI_STDFLIB 3 "July, 2006"
+.SH NAME
+MAPI stdflib \- Standard MAPI Function Library
+.SH SYNOPSIS
+.nf
+\fBBPF_FILTER\fP    Filters the packets of a flow
+\fBPKT_COUNTER\fP   Keeps the number of packets seen by a network flow
+\fBBYTE_COUNTER\fP  Keeps the number of bytes seen by a network flow
+\fBSTR_SEARCH\fP    Searches for a string inside the packet payload
+\fBTO_BUFFER\fP     Stores the packets of a flow for further reading
+\fBSAMPLE\fP        Samples packets from a flow
+\fBHASHSAMP\fP	    Samples packets from a flow according to a hashing function
+\fBTO_FILE\fP       Dumps the packets of a flow to a file
+\fBHASH\fP          Computes an additive hash over the packets of a flow
+\fBBUCKET\fP        Divides packets into buckets based on their timestamps  
+\fBTHRESHOLD\fP	    Signals when a threshold is reached         
+\fBBINOP\fP         Adds or subtracts values from two other MAPI functions
+\fBDIST\fP  	    Returns the distribution of results from another MAPI function
+\fBGAP\fP   	    Returns the time delay between two consecutive packets in a flow
+\fBPKTINFO\fP	    Returns information about a packet
+\fBRES2FILE\fP	    Stores results from other MAPI functions to a file         
+\fBSTARTSTOP\fP	    Starts and/or stops measurements at a specific time
+\fBSTATS\fP   	    Returns statistical information about results from other MAPI functions
+\fBBURST\fP         Returns the histogram of bursts
+\fBSYNC\fP          Synchronizes multiple flows on the same device
+
+.fi
+.SH DESCRIPTION
+The Standard MAPI function library (stdflib) provides
+a set of predefined functions that cover
+several frequently used monitoring needs.
+MAPI functions can be associated with network flows
+in order to treat their packets in different ways.
+.LP
+A MAPI function can be applied to an existing network flow using the
+.B mapi_apply_function()
+call.
+For functions that communicate results back to the user, the
+.B mapi_read_results()
+call should be used to retrieve the results.
+.LP
+For further information regarding 
+.B mapi_apply_function()
+and
+.B mapi_read_results()
+see the
+.BR mapi (3)
+page and the example at the end of this page.
+.SH FUNCTIONS
+.\"--------------------------------------------------------
+.IP "\fBBPF_FILTER\fP (char *\fIexpression\fP)"
+Filters the packets of a network flow. Only packets that match the
+filtering
+.I expression
+will be considered that belong to the network flow
+and will be further processed.
+The filtering
+.I expression
+should be written in the same syntax used by 
+.BR tcpdump (8).
+
+Type of results: \fBnone\fP.
+.\"--------------------------------------------------------
+.IP "\fBPKT_COUNTER\fP"
+Counts the number of packets seen by the network flow so far.
+
+Type of results: \fBunsigned long long\fP.
+.\"--------------------------------------------------------
+.IP "\fBBYTE_COUNTER\fP"
+Counts the number of bytes captured by the network flow so far.
+
+Type of results: \fBunsigned long long\fP.
+.\"--------------------------------------------------------
+.IP "\fBSTR_SEARCH\fP (char *\fIstr\fP, int \fIoffset\fP, int \fIdepth\fP)"
+Searches the payload of a network packet to see if it contains the string
+\fIstr\fP.
+The search starts from byte \fIoffset\fP
+(in relation to the beginning of the packet),
+and lasts for \fIdepth\fP bytes
+(in relation to the beginning of the search region).
+If \fIdepth\fP has zero value, the full payload will be searched.
+The string \fIstr\fP may contain mixed non-printable characters or binary
+data, in general, using special notation,
+similar to the one used by \fBsnort\fR(8).
+Binary data is written using
+the hexadecimal value of each byte (bytecode),
+and should be enclosed within pipe characters (|).
+For example, "abcd" is equivalent to "|61 62 63 64|",
+"|61626364|", "ab|63 64|", and "|61|b|63|d".
+The pipe character should be escaped using a preceding backslash (\\).
+Alternative match strings can be applied in the same function by
+separating the strings by two consecutive pipe characters (||).
+For eksample "abcd||defg" will match "abcd" or "defg" in the packet.
+Hex patterns like "abcd|||65 66 67 68|||ijkl" will also work.
+There is no limit as to how many "or strings" you can apply, but it does
+search the packet for each one, so more strings mean slower processing.
+If none of the strings in \fIstr\fP is not found in the payload,
+the packet will be discarded.
+
+Type of results: \fBnone\fP.
+.\"--------------------------------------------------------
+.IP "\fBTO_BUFFER\fP (int \fIflag\fP)"
+Stores the packets of a network flow in a buffer for further reading using the
+.B mapi_get_next_pkt()
+function. 
+When it applied to a network flow, every subsequent call to 
+.B mapi_get_next_pkt()
+returns the next packet of the flow that was stored in the buffer.
+.B mapi_read_results()
+does not return any results for this function. The argument \fIflag\fP
+determines whether the buffer will be blocking or not. The corresponding
+values are \fBWAIT\fP and \fBNOWAIT\fP equivalently. The \fBNOWAIT\fP
+value guarantees that subsequent calls to
+.B mapi_get_next_pkt()
+will return \fBNULL\fP in case there are not any packets stored in the
+buffer.
+
+Type of results: \fBstruct mapipkt*\fP (from mapi_get_next_pkt).
+
+.nf
+struct mapipkt {
+  unsigned long long ts;
+  unsigned short ifindex;
+  unsigned caplen;
+  unsigned wlen; 
+  unsigned char pkt; 
+};
+.fi
+.\"--------------------------------------------------------
+.IP "\fBSAMPLE\fP (int \fIvalue\fP, int \fImode\fP)"
+Samples packets from a network flow. 
+In \fBDETERMINISTIC\fP \fImode\fP, all but one out of every
+\fIvalue\fP packets are discarded and never sent to the monitoring application.
+For example, setting the sampling \fIvalue\fP to 20
+means that one out of 20 packets will be processed.
+Setting \fImode\fP to \fBPROBABILISTIC\fP,
+allows to define a percentage of the packets
+that will be selected for further processing.
+For example, if \fIvalue\fP is set to 20,
+only the 20% of the packets will be selected, and the rest 80% will be dropped.
+
+Type of results: \fBunsigned long long\fP.
+.\"--------------------------------------------------------
+.IP "\fBHASHSAMP\fP (int \fIrange\fP, int \fIkeep\fP)"
+Hashing based sampling can be used to sample all packets from a random flow. The hash is only calculated for TCP and UDP packets, other packets are discarded. Based on the src/dst IP and src/dst port a hash value between 0 and 1024 is calculated. \fIrange\fP is an integer between 0 and 1024, identifying the 0-range part of the hashresult that must be sampled. If \fIkeep\fP (boolean) is true, the src/dst IP, src/dst port, protocol, timestamp, TCP sequence and flags of each sampled packet are stored in a ringbuffer (\fIstruct sample\fP). The application can read this information with the \fImapi_read_results\fP function. If \fIkeep\fP is false, no results are stored and this function will return NULL pointers.
+
+Type of results: \fBstruct sample*\fP.
+
+.nf
+struct sample {
+  unsigned int source_ip;
+  unsigned int dest_ip;
+  unsigned int sourceport;
+  unsigned int destport;
+  unsigned int sequence;
+  unsigned int tcp_flags;
+  unsigned int protocol;
+  unsigned long long timestamp;
+};
+.fi
+.\"--------------------------------------------------------
+.IP "\fBTO_FILE\fP (int \fIformat\fP, char* \fIpath\fP, int \fIcount\fP)"
+Saves the packets of a network flow to disk.
+.I count
+is used to limit the number of dumped packets.
+A value of 0 is used to give an infinite limit.
+.I path
+defines the path and filename of the trace file. The path is relative to the directory where the client is executed, unless it is preceded by a '\\'.
+In case of DiMAPI, the file is saved in the directory where mapicommd runs, in the remote monitoring machine.
+The format of the file is specified by
+.IR format ,
+which can be one of:
+.RS 7
+.TP 4
+.B MFF_RAW
+the native format used by the underlying hardware
+.TP 4
+.B MFF_PCAP
+.BR tcpdump (8)
+- libpcap format
+.TP 4
+.B MFF_DAG_ERF
+ERF Type 2 Ethernet Variable Length Record format used by the DAG card
+family
+.TP 4
+.B MFF_NAPATECH
+Native Napatech records used by the Napatech card series
+.TP 4
+Type of results: \fBnone\fP.
+.RE
+.\"--------------------------------------------------------
+.IP "\fBHASH\fP (int \fIlayer\fP)"
+Computes the additive hash function over the packets of a network flow. layer value is between 0 and 3 and is used to hash the packet encapsulated at the specified layer. A value of 0 hashes the entire device packet, a value of 1 strips the link layer header and hashes only the encapsulated packet, a value of 2 hashes the entire packet encapsulated in IP or ARP or RARP packet if exists, otherwise returns 0. Finally, a value of 3 hashes the payload of TCP or UDP or ICMP packet if exists, otherwise returns 0.
+
+Type of results: \fBunsigned int\fP.
+.\"--------------------------------------------------------
+.IP "\fBBUCKET\fP (int \fIflow\fP, int \fIfunction\fP, char* \fIinterval\fP, int \fIreset\fP)"
+Returns results from other MAPI functions in precise periodical intervals.
+\fIflow\fP and \fIfunction\fP indicate the flow and function from where the results will be read.
+Then, it divides packets into buckets based on their timestamps. The \fIinterval\fP argument is a time string (e.g. "1s", "100ms", etc) that defines the timeout for the periodic interval of a bucket. Only packets within this time interval will be added to the same bucket. Once the timeout is reached, the function with id \fIfunction\fP is applied on all packets in the bucket. Afterwards, the bucket is emptied and new packets are added for the next \fIinterval\fP microseconds.
+If \fIreset\fP is enabled (set to 1), the results start from zero in every interval, else if it is disabled (set to 0) the results will increase in every interval.
+
+The results of the applied function are written to a structure \fBstruct bucket_data\fP (declared in mapi/bucket.h), which contains the timestamp of the first packet and a pointer to the result obtained by the applied function. The results from all buckets are put in a fifo ring buffer and can be read one by one by the 
+.B mapi_read_results() 
+function.
+
+Type of results: \fBstruct bucket_data*\fP.
+
+.nf
+struct bucket_data {
+  unsigned long long timestamp;
+  unsigned long long data;
+};
+.fi
+.\"--------------------------------------------------------
+.\"--------------------------------------------------------
+.IP "\fBTHRESHOLD\fP (int \fItype\fP, int \fIflow\fP, int \fIfunction\fP, unsigned long long \fIthreshold\fP, int \fIboundary\fP, int \fItimeout\fP, int \fIdivider\fP, int \fIcount\fP)"
+Signals when a certain threshold is reached. This function supports 3 kinds of thresholds as specified by the \fItype\fP argument: \fBTYPE_CHAR\fP, \fBTYPE_INT\fP and \fBTYPE_UNSIGNED_LONG_LONG\fP. These thresholds are applied on a function with id \fIfunction\fP. The \fIthreshold\fP value can be met inside the packet flow every time a packet passes, outside the packet flow by polling a threshold value or over a moving window. The \fIboundary\fP argument specifies the type of threshold boundary that is used:
+
+\fBTR_B_POS\fP measured value is higher than the threshold 
+
+Regular expression pattern matching\fBTR_B_EQ\fP measured value is equal to the threshold 
+
+\fBTR_B_NEG\fP measured value is lower than the threshold 
+
+\fBTR_B_D_POS\fP difference with the previous measurement is higher than the threshold 
+
+\fBTR_B_D_EQ\fP difference with the previous measurement is equal to the threshold 
+
+\fBTR_B_D_NEG\fP difference with the previous measurement is lower than the threshold 
+
+A \fItimeout\fP defines the period in which no new events will be sent to the application after the first event. When using a moving window threshold, a \fIdivider\fP should be specified. The \fIdivider\fP defines the number of poll-intervals within one window. \fIcount\fP represents the number of threshold events that should be generated before the function stops, 0 for an unlimited number of events. The application waits until the threshold function returns (blocking call), before continuing its execution.
+
+Type of results: \fBnone\fP.
+.\"--------------------------------------------------------
+.\"--------------------------------------------------------
+.IP "\fBBINOP\fP (int \fItype\fP, int \fIflow1\fP, int \fIfunction1\fP, int \fIflow2\fP, int \fIfunction2\fP)"
+Adds or substracts values from two other MAPI functions.
+If \fItype\fP is \fBBINOP_ADD\fP, it adds the results of the \fIfunction1\fP and \fIfunction2\fP.
+Else, if \fItype\fP is \fBBINOP_SUB\fP, \fBBINOP\fP substracts the result of \fIfunction2\fP from the result of \fIfunction1\fP.
+
+Type of results: \fBunsigned long long\fP.
+.\"--------------------------------------------------------
+.\"--------------------------------------------------------
+.IP "\fBDIST\fP (int \fIflow\fP, int \fIfunction\fP, char* \fImin\fP, char* \fImax\fP, char* \fIinterval\fP)"
+Starts and/or stops measurements at a specific timeReturns the distribution of results from another MAPI function, with id \fIfunction\fP from flow \fIflow\fP.
+
+Type of results: \fBunsigned long long[]\fP.
+.\"--------------------------------------------------------
+.IP "\fBGAP\fP"
+Returns the time delay between two consecutive packets in a flow.
+
+Type of results: \fBunsigned long long\fP.
+.\"--------------------------------------------------------
+.IP "\fBPKTINFO\fP (int \fIinfo\fP)"
+Returns information about a packet.
+If \fIinfo\fP is \fBPKT_TS\fP, it gives the packet timestamp.
+Else, if \fIinfo\fP is \fBPKT_SIZE\fP, it returns the packet size.
+
+Type of results: \fBunsigned long long\fP.
+.\"--------------------------------------------------------
+.\"--------------------------------------------------------
+.IP "\fBRES2FILE\fP (char* \fIformat\fP, char* \fIfunctions_list\fP, char* \fIheader\fP, char* \fIfilename\fP, char* \fIinterval\fP, int \fIreset\fP)"
+Stores results from other MAPI functions to a file.
+The \fIformat\fP of the results can be on the following options:
+\fBR2F_RAW\fP, \fBR2F_ULLSTR\fP, \fBR2F_ULLSEC\fP or \fBR2F_STATS\fP.
+The list of the functions to read results and write to file is denoted in the \fIfunctions_list\fP
+in the format "<fid>@<fd>, <fid2>@<fd2>".
+\fIheader\fP is a string to store in the begining of the file.
+The results are stored in the \fIfilename\fP file.
+If the path is not absolute, the file is created and saved in the current directory.
+In case of DiMAPI, the file is saved in the directory where mapicommd runs, in the remote monitoring machine.
+Finally, \fIinterval\fP should be -1 for writing always, 0 for write once when flow closes, or 
+a time string as "1s", "1.2ms" etc, and \fIreset\fP is enabled when 1 and disabled when 0.
+
+Type of results: \fBnone\fP.
+.\"--------------------------------------------------------
+.IP "\fBSTARTSTOP\fP (char* \fIstart\fP, char* \fIstop\fP)"
+Starts and/or stops measurements at a specific time.
+\fIstart\fP indicates the start time (e.g. "10s"), while \fIstop\fP
+is the relative time from the first captured packet.
+
+Type of results: \fBnone\fP.
+.\"--------------------------------------------------------
+.IP "\fBSTATS\fP (int \fIflow\fP, int \fIfunction\fP, char* \fIticks\fP)"
+Returns statistical information about results from MAPI function with fid
+\fIfunction\fP. If \fIticks\fP is equal to 1, then the first packet is skiped.
+If it equal to 0, then no packets will be skiped.
+Else, the \fIticks\fP parameter indicates the period tha the results will be
+reported.
+.\"is the number of packets to skip before reading the first result.
+
+Type of results: \fBstruct stats\fP.
+
+.nf
+struct stats {
+  unsigned long long count;
+  long double sum;
+  long double sum2;
+  double max;
+  double min;
+};
+.fi
+.\"--------------------------------------------------------
+.IP "\fBBURST\fP (int \fImin\fP, int \fImax\fP, int \fIstep\fP, int \fIiftime\fP, int \fIlate\fP, int \fIearly\fP, int \fIlink_speed\fP)"
+Returns the histogram of bursts. Bursts are categorized according to their total size in bytes, the result is an array, where each category holds its size in bytes and number of packets and bursts collected. Catogory 0 always holds bursts of lower size than the minimum size specified (\fImin\fP [B]). The last category always holds bursts of greater size than the maximum size specified (\fImax\fP [B]). \fIstep\fP [B] specifies the precission of the histogram.
+
+.nf
+Category   Burst size in bytes
+0          <0, min)
+1          <min, min + step)
+        ...
+N-1        <max - step, max)
+N          >= max
+.fi
+
+\fIiftime\fP [ns] specifies the inter-frame time (an expected time from last bit of one packet to first bit of the following packet in burst), \fIlate\fP [ns] and \fIearly\fP [ns] specifies the tolerance (packet can arrive \fIlate\fP ns later or \fIearly\fP ns earlier than expected). \fIlink_speed\fP [mbps] specifies the speed of the link associated with the flow.
+
+Number of categories returned: (\fImax\fP - \fImin\fP) / \fIstep\fP + 2
+
+Type of results: \fBstruct burst_category[]\fP.
+
+.nf
+struct burst_category {
+  unsigned long bytes;
+  unsigned long packets;
+  unsigned long bursts;
+};
+.fi
+.\"--------------------------------------------------------
+
+.SH "EXAMPLES"
+The example below reports periodically
+the numBer of packets destined to a web server at port 80
+that contain the string '/bin/perl'.
+
+.nf
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <mapi.h>
+
+static void die();
+int fd;
+
+int main(int argc,char *argv[]) {
+
+    int counter;
+    unsigned long long *total_packets;
+    mapi_results_t *results;
+ 
+    signal(SIGINT, die);
+    signal(SIGQUIT, die);
+    signal(SIGTERM, die);
+
+    fd = mapi_create_flow("eth0");
+    
+    mapi_apply_function(fd, "BPF_FILTER", "tcp port 80");
+    mapi_apply_function(fd, "STR_SEARCH", "/bin/perl", 0, 0);
+    counter = mapi_apply_function(fd,"PKT_COUNTER");
+    
+    mapi_connect(fd);
+
+    while(1) {
+        results = mapi_read_results(fd, counter);
+	total_packets = (unsigned long long*)results->res;
+        printf("total_packets: %lld\\n", *total_packets);
+        sleep(1);
+    }
+    
+    return 0;
+}
+
+void die(){
+    mapi_close_flow(fd);
+    exit(0);
+}
+.fi
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR mapi (3), 
+.BR mapid (1),
+.BR mapi_dagflib (3), 
+.BR mapi_trackflib (3),
+.BR mapi_anonflib (3),
+.BR mapi_extraflib (3),
+.BR tcpdump (1),
+.BR pcap (3)

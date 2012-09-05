@@ -1,0 +1,4 @@
+[driver]
+device=/dev/szedataII0
+driver=mapicombo6drv.so
+description=Combo6x capture card

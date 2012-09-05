@@ -1,0 +1,42 @@
+include ../Makefile.in
+INC=
+CFLAGS=-g -O2 -pipe -DHAVE_CONFIG_H -DMAPI -I$(MAPI_INCLUDE) \
+       $(C_WARNINGS) -D_THREAD_SAFE
+LIBS=  -lpcap  -lresolv -lpthread -lz 
+SOLIB=ipfixlib.so
+PACKAGE=$(APPL)-2.1.0-2.i386.rpm
+PACKAGEDEMO=$(APPL)-demo-2.1.0-2.i386.rpm
+
+INCS=nprobe.h npctxt.h engine.h util.h nprobe-priv.h Makefile
+SOLIBOBJS=nprobe.o npktproc.o md5.o engine.o util.o ipfixlib.o \
+   ipfixprobe.o npctrl.o
+
+MAPI_HOME=..
+MAPI_INCLUDE=$(MAPI_HOME)
+MAPI_OBJ_PATH=$(MAPI_HOME)
+MAPI_OBJS=$(MAPI_HOME)/fhelp.o $(MAPI_HOME)/mapiipc.o $(MAPI_HOME)/flist.o
+MAPI_DEBUG=2
+
+MAPI_CFLAGS=-g -O2 -Wall $(C_WARNINGS) -Wcast-align $(C_FEATURES)
+MAPI_CFLAGS := $(MAPI_CFLAGS) -DDEBUG=$(MAPI_DEBUG) -I$(MAPI_INCLUDE) \
+   -DWITH_FUNCT_STATS
+
+all: $(SOLIB)
+
+$(SOLIB): $(SOLIBOBJS) $(MAPI_OBJS)
+	$(CC) -shared -o $@ $^ $(LIBS)
+	cp $@ ..
+
+clean:
+	-rm -f $(APPL) $(SOLIB) $(SOLIBOBJS) *~
+
+nprobe.o: $(INCS) nprobe.c
+npktproc.o: $(INCS) npktproc.c
+engine.o: $(INCS) engine.c
+util.o:   $(INCS) util.c
+version:  $(INCS) version.c
+ipfixlib.o:   ipfixlib.c
+	$(CC) -c $(MAPI_CFLAGS) $<
+ipfixprobe.o:   ipfixprobe.c
+	$(CC) -c $(MAPI_CFLAGS) $<
+npctrl.o: $(INCS) npctrl.c

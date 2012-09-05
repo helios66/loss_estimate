@@ -1,0 +1,28 @@
+libpath=@DATADIR@
+drvpath=@DATADIR@
+
+libs=@MAPI_FUNC_LIBS@
+
+dimapi_port=2233
+log_level=1
+logfile=
+
+[driver]
+device=eth0
+driver=mapinicdrv.so
+
+[driver]
+device=lo
+driver=mapinicdrv.so
+description=This is a driver for local capture
+
+@MAPI_CONF_DAG_ENTRY@
+
+@MAPI_CONF_NAPATECH_ENTRY@
+
+[format]
+format=MFF_PCAP
+driver=mapinicdrv.so
+description=Offline pcap-capture
+
+@MAPI_CONF_IPFIXFLIB_ENTRY@

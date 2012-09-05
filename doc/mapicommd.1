@@ -1,0 +1,46 @@
+.\" MAPI man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapicommd.1 |less
+.\"
+.TH mapicommd 1 "August, 2007"
+.SH NAME
+mapicommd \- Monitoring Application Programming Interface communication deamon
+.SH SYNOPSIS
+.B mapicommd [-d] [-s] [-h]
+.SH DESCRIPTION
+.B mapicommd 
+is a communication deamon that must be running in 
+a passive network monitoring sensor in order to support remote 
+monitoring requests for client applications that run in remote hosts.
+In that way, through mapicommd,the passive monitoring sensor supports the
+Distributed Monitoring Application Programming Interface (
+.B DiMAPI
+) functionality. In the same computer (passive monitoring sensor) that
+.B mapicommd runs, an instance of
+.B mapid
+deamon should be also running.
+For 
+.B mapid
+, please refer to the
+.BR mapid (1)
+page.
+.SH OPTIONS
+.B  -d, --daemon          
+Run as a daemon
+.br
+.B  -s, --syslog          
+Logging to syslog
+.br
+.B  -h, --help            
+Display help message
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR mapi (3),
+.BR mapid (1),
+.BR mapi_stdflib (3),
+.BR mapi_dagflib (3),
+.BR mapi_trackflib (3),
+.BR mapi_anonflib (3),
+.BR tcpdump (1),
+.BR pcap (3)

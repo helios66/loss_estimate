@@ -1,0 +1,3 @@
+# Defaults for mapi
+# sourced by /etc/init.d/mapi
+START_DAEMON="false"

@@ -1,0 +1,103 @@
+#!/bin/bash
+#
+# Copyright (c) 2006, CESNET
+# All rights reserved.
+#
+# LICENSE TERMS
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the company nor the names of its contributors 
+#       may be used to endorse or promote products derived from this 
+#       software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+# THE COMPANY OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# $Id$
+#
+
+export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+ABW_DIR=@ABW_DIR@
+ABW_VAR_DIR=@ABW_VAR_DIR@
+LOG_DIR=${ABW_VAR_DIR}/log
+LOG_FILE=${LOG_DIR}/abw.log
+SCRIPT_NAME=`basename $0`
+
+usage() {
+	echo "Usage: abw_mapi.sh [ -d ]"
+}
+
+if [ $# -gt 1 ]; then
+	usage
+	exit 1
+fi
+
+if [ $# -eq 1 -a "x$1" != "x-d" ]; then
+	usage
+	exit 1
+fi
+
+PROCESSES_MAPID=`ps -ef|grep mapid|grep -v grep|wc -l`
+echo "PROCESSES_MAPID: $PROCESSES_MAPID"
+
+PROCESSES_MAPICOMMD=`ps -ef|grep mapicommd|grep -v grep|wc -l`
+echo "PROCESSES_MAPICOMMD: $PROCESSES_MAPICOMMD"
+
+PROCESSES_ABW=`ps -ef|grep "abw -f"|grep -v grep|wc -l`
+echo "PROCESSES_ABW: $PROCESSES_ABW"
+
+CURRENT_DATE=`date`
+RESTART=0
+
+if [ $PROCESSES_MAPID -eq 0 ]; then
+	RESTART=1
+	echo "$CURRENT_DATE: $SCRIPT_NAME: mapid is not running" >> $LOG_FILE
+fi
+	
+if [ $PROCESSES_MAPICOMMD -eq 0 -a "$1x" = "-dx" ]; then
+	RESTART=1
+	echo "$CURRENT_DATE: $SCRIPT_NAME: mapicommd is not running and -d was specified" >> $LOG_FILE
+fi
+	
+if [ $PROCESSES_ABW -eq 0 ]; then
+	RESTART=1
+	echo "$CURRENT_DATE: $SCRIPT_NAME: abw is not running" >> $LOG_FILE
+fi
+
+if [ $RESTART -gt 0 ]; then
+
+	echo "Restarting MAPI and ABW"
+	echo "$CURRENT_DATE: $SCRIPT_NAME: restarting MAPI and ABW" >> $LOG_FILE
+
+	${ABW_DIR}/bin/abw.sh stop
+	${ABW_DIR}/bin/mapi.sh stop
+
+	if [ "$1x" = "-dx" ]; then
+		${ABW_DIR}/bin/mapi.sh -d start
+	else
+		${ABW_DIR}/bin/mapi.sh start
+	fi
+
+	${ABW_DIR}/bin/abw.sh start
+
+else
+
+	echo "MAPI and ABW is running"
+
+fi

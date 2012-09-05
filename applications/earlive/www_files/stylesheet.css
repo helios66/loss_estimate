@@ -1,0 +1,54 @@
+.table {
+	border-width : 1px;
+	border-style : solid;
+	border-collapse: collapse;
+	text-align : center;
+	empty-cells: hide;
+}
+
+.table td, th {
+	border-width: 1px;
+	border-style: solid;
+}
+
+
+.payload {
+	font-family: "Courier New", Courier, monospace;
+	text-align: left;
+}
+
+.blinked {
+	font-weight: bold;
+	color: #FF0000;
+	font-size: 24px;
+	text-decoration: blink;
+	text-align: center;
+}
+
+.title {
+	color: #0000CC;
+	font-weight: bold;
+	font-size: 24px;
+	text-align: center;
+}
+
+.pagination{
+border-style: none;
+padding: 2px;
+display: inline;
+}
+
+
+.pagination a, .pagination a:visited{
+padding: 0 5px;
+border: 1px solid #9aafe5;
+text-decoration: none; 
+color: #2e6ab1;
+}
+
+.pagination a:hover, .pagination a:active{
+border: 1px solid #2b66a5;
+color: #000;
+background-color: lightyellow;
+}
+

@@ -1,0 +1,86 @@
+# any private mail system
+port  24			
+# smtp : Simple Mail Transfer
+port  25			
+# re-mail-ck :	Remote Mail Checking Protocol
+port  50			
+# xns-mail : XNS Mail
+port  58			
+# nu-mail	:	NI mail
+port  61			
+# csnen-ns : Mailbox Name Nameserver
+port 105			
+# pop2 : Post Office Protocol v2
+port 109			
+# pop3 : Post Office Protocol v3
+port 110
+# imap : Internet Message Access Protocol
+port 143	
+# pcmail-srv : PCMail Server
+port 158			
+# mailq	: MAILQ
+port 174			
+# qmtp: The Quick Mail Transfer Protocol
+port 209			
+# imap3 : Interactive Mail Access Protocol v3
+port 220			
+# imsp : Interactive Mail Support Protocol
+port 406
+# hybrid-pop
+port 473
+# mailbox-lm
+port 505			
+# comsat biff : used by mail system to notify
+# users of new mail received; currently receives
+# messages from processes on the same machine
+udp and port 512	 
+# imap4-ssl : IMAP4+SSL
+port 585
+# imaps : imap4 protocol over TLS/SSL
+port 993		
+# pop3s: pop3 protocol over TSL/SSL
+port 995
+# dvl-activemail : DVL Active Mail
+port 1396 			
+# audio-activmail 
+port 1397			
+# video-activmail
+port 1398			
+# mailbox
+tcp and port 2004	
+# lnvmailmon
+port 2285			
+# mns-mail : MNS Mail Notice Service
+port 2593			
+# lotusmtap : Lotus Mail TRacking Agent Protocol
+port 3007			
+# ironmail: IronMail POP Proxy
+port 3206			
+# ccmail: cc:mail/lotus
+port 3264			
+# mcs-fastmail 
+port 3302			
+# mcs-mailsrv : MCS Mail Server
+port 3332			
+# webmail-2
+port 3511			
+# gbs-smp : GBS SnapMail Protocol
+port 3762			
+# mupdate : Mailbox Update protocol
+port 3905			
+# mailprox 
+port 3936			
+# openmail : OpenMail User Agent Layer
+port 5729			
+# openmailg : OpenMail Desk Gateway server
+port 5755			
+# x500ms : OpenMail X.500 Directory Server
+port 5757			
+# openmailns : OpenMail NewMail Server
+port 5766			
+# s-openmail : OpenMail  Suer Agent Layer (Secure)
+port 5767			
+# openmailpxy : OpenMail CMTS Server
+port 5768			
+# smltec-xmlmail
+port 9091			

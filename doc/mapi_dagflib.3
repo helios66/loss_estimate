@@ -1,0 +1,126 @@
+.\" MAPI man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapi_dagflib.3 |less
+.\"
+.TH MAPI_DAGFLIB 3 "April 2007"
+.SH NAME
+MAPI dagflib \- Endace DAG Function Library
+.SH SYNOPSIS
+.nf
+\fBINTERFACE\fP          Selects packets from a specific DAG interface only
+\fBBPF_FILTER\fP         Filters the packets of a flow using the DSM hw filter
+
+.fi
+.SH DESCRIPTION
+This library provides functions intended for better use the capabilities of
+the DAG capturing hardware (produced by Endace), thus to alleviate the main
+CPU burden. Once applied to DAG bound MAPI flow, the function from dagflib
+is tried first. In case of failure, the correspondingly named software
+function from stdflib is used instead (if exists). See also
+.BR mapi_stdflib (3).
+
+DSM filtering is enabled for all DAG cards claiming DSM support
+(e.g. DAG 6.2). The number of hardware filters is hardwired to 8, but one is
+reserved as the hot-swap filter. For more information on DSM, see the
+.BR bpf2dagdsm (1)
+manpage from this package or Endace documentation.
+
+.SH FUNCTIONS
+.TP
+.BI "INTERFACE (int " ifnumber ")"
+Software function (not touching the hardware) to pass only packets originating
+from the DAG interface (AKA port) identified by
+.IR ifnumber .
+
+Type of results: \fBnone\fP.
+.\"--------------------------------------------------------
+.TP
+.BI "BPF_FILTER (char *" expression ")"
+Programs the DAG card's hardware DSM filter so in result, only packets
+matching the filtering \fIexpression\fR (which uses the syntax used by
+\fBtcpdump\fR(8)) will pass over this func in the flow.
+
+The \fIexpression\fR is compiled into the XML format and fed to Endace's utility
+.BR dsm_loader (1)
+executed on the background by mapid. The section
+.I [dag]
+of the MAPI configuration file
+.BR mapi.conf
+holds the following variables pertaining to the DSM:
+
+.I dsm_loader_bin
+-- The path to the \fBdsm_loader\fR binary.
+
+.I disable_dsm
+-- This debugging boolean variable disables the DSM code in mapid (value 1).
+The code from stdflib will be used for BPF_FILTER and PKT_COUNTER. The
+default is 0.
+
+.I disable_dsm_xml_remove
+-- This debugging boolean variable instructs mapid to \fBnot\fR remove the
+XML definition file created in the /tmp directory after the successful run
+of dsm_loader. The default is 0.
+
+The \fBBPF_FILTER\fR implementation is NEW & EXPERIMENTAL and more
+described below under \fBDSM IMPLEMENTATION\fR.
+
+Type of results: \fBnone\fP.
+.fi
+.\"--------------------------------------------------------
+.SH DSM IMPLEMENTATION
+
+Data Stream Management (DSM) is a hardware filtering/classification feature
+provided by certain models of DAG capturing cards made by Endace. The DSM
+module provides 7 independent bitmasking filters; they match first 64 bytes
+of captured network frames in parallel. Every filter yields the boolean
+value that can be further processed by the hardware lookup table forming
+trivial or complex logical expressions.
+
+Logical expressions can be formed from additional variables: 1) outputs of
+two steering (load balancing) algorithms: parity and crc32 (both should
+generate true/false with approximately 50:50 split), 2) variable describing
+the port (interface) the current frame was captured on.
+
+The output of the logical expressions indicates, to which logical input
+stream the frame should be sent or whether it should be silently dropped.
+
+The hardware increments a special counters for every filter that matched the
+frame. The DSM version of function \fBPKT_COUNTER\fR utilizes reading filter
+counters.
+
+To utilize the \fBBPF_FILTER\fR functions we need to transform the BPF
+expression to DSM configuration just described. The suitable bpfcompiler
+library comes with MAPI. For additional details see \fBbpf2dagdsm\fR(1)
+describing a command line program using this library as well as some notable
+language restrictions.
+
+Each of the \fBBPF_FILTER\fR functions occupies one or more DSM bitmasking
+filters. Being in the DSM mode, DAG card sends special "colored" ERF data
+records containing the bit-array indicating which filters matched the packet.
+
+Main reason to implement DSM in MAPI was to alleviate the load of the CPU
+running MAPI daemon when monitoring thick pipes. A packet is matched against
+the filter at the hardware level, resulting in less processing by the software.
+Since there might be other flows interested in packets not matched by this
+filter all the packets are returned to software instead of dropped by the card.
+
+The complete DSM configuration inspecting all active flows is fully rebuilt
+in each \fIbpffilter_init\fR() and \fIbpffilter_cleanup\fR(). The bpfcompiler
+library generates the XML file to /tmp. It is suitable for the
+\fBdsm_loader\fR command line program create by Endace, which is then called
+by mapid to actually activate the DSM configuration.
+
+.\"--------------------------------------------------------
+
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR bpf2dagdsm (1),
+.BR dsm_loader (1),
+.BR mapi (3), 
+.BR mapi_stdflib (3), 
+.BR mapi_trackflib (3),
+.BR mapi_anonflib (3),
+.BR mapi_extraflib (3),
+.BR tcpdump (1),
+.BR pcap (3)

@@ -1,0 +1,12 @@
+netload - simple traffic load reporting application
+
+- Compilation:
+
+  $ ./configure
+  $ make
+  $ make install (optional)
+
+- usage:
+
+  $ ./netload interface
+  $ ./netload host1:interface1 host2:interface2 ...

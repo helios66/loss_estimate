@@ -1,0 +1,9 @@
+ 4 Jun 2006 - mikepo
+
+	* Autoconfiscation
+	* Changes for combatibility with the new read_results format
+	* Commited to uninett's svn repository
+	
+29 Nov 2005 - mikepo
+
+	* Initial version. Demo at the first LOBSTER review

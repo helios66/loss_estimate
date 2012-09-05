@@ -1,0 +1,687 @@
+#
+# Suppressions file for debugging mapi with valgrind
+#
+
+# Command line to run mapid:
+# valgrind --leak-check=full --trace-children=yes \
+#  --suppressions=mapi.supp \
+#  --num-callers=18 \
+#  --gen-suppressions=all \
+#  --show-reachable=yes \
+#  --leak-check=full \
+#  --error-limit=no  /usr/sbin/mapid > <outfile> 2>& 1
+
+{
+   mapi_dlopen_1
+   Memcheck:Addr4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_2
+   Memcheck:Addr4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_3
+   Memcheck:Addr4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_4
+   Memcheck:Addr4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_5
+   Memcheck:Addr4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:__libc_dlopen_mode
+}
+
+{
+   mapi_dlopen_6
+   Memcheck:Addr4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_7
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_8
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_9
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_10
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_11
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_12
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_13
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_14
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_15
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_16
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_dlopen_17
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:dlopen
+}
+
+{
+   mapi_unlink_1
+   Memcheck:Param
+   unlink(pathname)
+   fun:*
+   fun:*
+   fun:main
+}
+
+{
+   mapi_grnam_1
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:getgrnam_r
+   fun:getgrnam
+}
+
+{
+   mapi_grnam_2
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:getgrnam_r
+   fun:getgrnam
+}
+
+{
+   mapi_pthread_create_1
+   Memcheck:Leak
+   fun:*
+   fun:*
+   fun:*
+   fun:pthread_create*
+}
+
+# Uses value returned by napatech ioctl - OK
+{
+   napatech_cond_1
+   Memcheck:Cond
+   fun:mapidrv_create_flow
+   fun:cmd_create_flow
+   fun:mapidcom
+   fun:main	
+}
+
+# Uses value returned by napatech ioctl - OK
+{
+   napatech_cond_2
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:mapidrv_create_flow
+   fun:cmd_create_flow
+   fun:mapidcom
+   fun:main
+}
+
+# Uses value returned by napatech ioctl - OK
+{
+   napatech_cond_3
+   Memcheck:Cond
+   fun:*
+   fun:mapidrv_create_flow
+   fun:cmd_create_flow
+   fun:mapidcom
+   fun:main
+}
+
+{
+   napatech_cond_4
+   Memcheck:Cond
+   fun:*
+   fun:NTCI_StartPacketFeed
+   fun:mapidrv_create_flow
+   fun:cmd_create_flow
+   fun:mapidcom
+   fun:main
+}
+
+{
+   napatech_cond_5
+   Memcheck:Cond
+   fun:mmap64
+   fun:*
+   fun:NTCI_StartPacketFeed
+   fun:mapidrv_create_flow
+   fun:cmd_create_flow
+   fun:mapidcom
+   fun:main
+}
+
+{
+   napatech_cond_6
+   Memcheck:Cond
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_cond_7
+   Memcheck:Cond
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_cond_8
+   Memcheck:Cond
+   obj:*
+   fun:*
+   fun:*
+   fun:mapidrv_create_flow
+   fun:cmd_create_flow
+   fun:mapidcom
+   fun:main
+}
+
+{
+   napatech_cond_9
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_cond_10
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_cond_11
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_cond_12
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:NTCI_StopPacketFeed
+   fun:mapidrv_delete_device
+   fun:mapid_shutdown
+}
+
+{
+   napatech_cond_13
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_cond_14
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_cond_15
+   Memcheck:Cond
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_param_1
+   Memcheck:Param
+   mmap2(length)
+   obj:*
+   fun:mmap64
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+
+{
+   napatech_param_2
+   Memcheck:Param
+   mmap2(offset)
+   obj:*
+   fun:mmap64
+   obj:*
+   obj:*
+   obj:*
+   obj:*
+}
+
+{
+   napatech_param_3
+   Memcheck:Param
+   munmap(start)
+   obj:*
+   fun:*
+   fun:NTCI_StopPacketFeed
+   fun:mapidrv_delete_device
+   fun:mapid_shutdown
+}
+
+{
+   napatech_param_3
+   Memcheck:Param
+   munmap(length)
+   obj:*
+   fun:*
+   fun:NTCI_StopPacketFeed
+   fun:mapidrv_delete_device
+   fun:mapid_shutdown
+}
+
+{
+   napatech_value_1
+   Memcheck:Value4
+   obj:*
+   fun:*
+   fun:*
+   fun:mapidrv_create_flow
+   fun:cmd_create_flow
+   fun:mapidcom
+   fun:main
+}
+
+{
+   napatech_value_2
+   Memcheck:Value4
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_value_3
+   Memcheck:Value4
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_value_4
+   Memcheck:Value4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_value_5
+   Memcheck:Value4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_value_6
+   Memcheck:Value4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_value_7
+   Memcheck:Value4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+{
+   napatech_value_8
+   Memcheck:Value4
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:*
+   fun:mapid_process_pkt
+   fun:process_pkts
+   fun:mapidrv_proc_loop
+}
+
+# Probably real, but forget about it for now
+{
+   mapi_malloc_1
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:load_drivers
+   fun:main
+}
+
+# We should check this, but forget about it for now
+{
+   mapi_send_1
+   Memcheck:Param
+   socketcall.send(msg)
+   fun:*
+   fun:cmd_*
+   fun:mapidcom
+   fun:main
+}
+
+# Highly suspicious. Check later.
+{
+   mapi_memcpy_1
+   Memcheck:Overlap
+   fun:memcpy
+   fun:mapidrv_offline_proc_loop
+   fun:start_thread
+}
+
+# Probably real, but forget about it for now
+{
+   mapi_malloc_1
+   Memcheck:Leak
+   fun:malloc
+   fun:cmd_*
+   fun:mapidcom
+   fun:main
+}
+
+# Probably real, but forget about it for now
+{
+   mapi_param_1
+   Memcheck:Param
+   socketcall.send(msg)
+   obj:*
+   fun:report_error
+   fun:cmd_apply_function
+   fun:mapidcom
+   fun:main
+}

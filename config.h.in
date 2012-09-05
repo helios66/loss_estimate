@@ -1,0 +1,225 @@
+/* config.h.in.  Generated from configure.ac by autoheader.  */
+
+/* configuration directory */
+#undef CONFDIR
+
+/* configuration file */
+#undef CONF_FILE
+
+/* directory for drivers and function librarues */
+#undef DATADIR
+
+/* keep debugging on during beta testing */
+#undef DEBUG
+
+/* Support for distributed monitoring */
+#undef DIMAPI
+
+/* SSL support for DiMAPI */
+#undef DIMAPISSL
+
+/* Define to 1 if you have the <arpa/inet.h> header file. */
+#undef HAVE_ARPA_INET_H
+
+/* Define to 1 if you have the <dlfcn.h> header file. */
+#undef HAVE_DLFCN_H
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#undef HAVE_FCNTL_H
+
+/* Data type */
+#undef HAVE_INT16_T
+
+/* Data type */
+#undef HAVE_INT32_T
+
+/* Data type */
+#undef HAVE_INT64_T
+
+/* Data type */
+#undef HAVE_INT8_T
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `m' library (-lm). */
+#undef HAVE_LIBM
+
+/* Define to 1 if you have the `nids' library (-lnids). */
+#undef HAVE_LIBNIDS
+
+/* Define to 1 if you have the `pcre' library (-lpcre). */
+#undef HAVE_LIBPCRE
+
+/* Define to 1 if you have the `rt' library (-lrt). */
+#undef HAVE_LIBRT
+
+/* Define to 1 if you have the <malloc.h> header file. */
+#undef HAVE_MALLOC_H
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the <netdb.h> header file. */
+#undef HAVE_NETDB_H
+
+/* Define to 1 if you have the <netinet/in.h> header file. */
+#undef HAVE_NETINET_IN_H
+
+/* Define to 1 if you have the <net/ethernet.h> header file. */
+#undef HAVE_NET_ETHERNET_H
+
+/* whether we are using openssl */
+#undef HAVE_OPENSSL
+
+/* Define to 1 if you have the <stddef.h> header file. */
+#undef HAVE_STDDEF_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <syslog.h> header file. */
+#undef HAVE_SYSLOG_H
+
+/* Define to 1 if you have the <sys/ethernet.h> header file. */
+#undef HAVE_SYS_ETHERNET_H
+
+/* Define to 1 if you have the <sys/file.h> header file. */
+#undef HAVE_SYS_FILE_H
+
+/* Define to 1 if you have the <sys/socket.h> header file. */
+#undef HAVE_SYS_SOCKET_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+#undef HAVE_SYS_TIME_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Data type */
+#undef HAVE_UINT16_T
+
+/* Data type */
+#undef HAVE_UINT32_T
+
+/* Data type */
+#undef HAVE_UINT8_T
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Data type */
+#undef HAVE_U_INT16_T
+
+/* Data type */
+#undef HAVE_U_INT32_T
+
+/* Data type */
+#undef HAVE_U_INT64_T
+
+/* Data type */
+#undef HAVE_U_INT8_T
+
+/* Define to 1 if you have the <zlib.h> header file. */
+#undef HAVE_ZLIB_H
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
+
+/* mapicommd SSL certificate */
+#undef MAPICOMMD_SSL_CERT_FILE
+
+/* mapicommd SSL key */
+#undef MAPICOMMD_SSL_KEY_FILE
+
+/* mapi group name */
+#undef MAPI_GROUP_NAME
+
+/* Name of package */
+#undef PACKAGE
+
+/* Define to the address where bug reports for this package should be sent. */
+#undef PACKAGE_BUGREPORT
+
+/* Define to the full name of this package. */
+#undef PACKAGE_NAME
+
+/* Define to the full name and version of this package. */
+#undef PACKAGE_STRING
+
+/* Define to the one symbol short name of this package. */
+#undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
+
+/* Define to the version of this package. */
+#undef PACKAGE_VERSION
+
+/* Support for reconnect of client after connection to mapicommd or mapid
+   breaks down */
+#undef RECONNECT
+
+/* rulerflib is enabled in the build */
+#undef RULERFLIB_COMPILED
+
+/* The size of `char', as computed by sizeof. */
+#undef SIZEOF_CHAR
+
+/* The size of `int', as computed by sizeof. */
+#undef SIZEOF_INT
+
+/* The size of `long int', as computed by sizeof. */
+#undef SIZEOF_LONG_INT
+
+/* The size of `long long int', as computed by sizeof. */
+#undef SIZEOF_LONG_LONG_INT
+
+/* The size of `short int', as computed by sizeof. */
+#undef SIZEOF_SHORT_INT
+
+/* Define to 1 if you have the ANSI C header files. */
+#undef STDC_HEADERS
+
+/* trackflib is enabled in the build */
+#undef TRACKFLIB_COMPILED
+
+/* easier debugging using valgrind */
+#undef VALGRIND
+
+/* Version number of package */
+#undef VERSION
+
+/* support for authentication */
+#undef WITH_AUTHENTICATION
+
+/* if DAG cards are supported */
+#undef WITH_DAG
+
+/* enable function statistics */
+#undef WITH_FUNCT_STATS
+
+/* enable mapidlib locking */
+#undef WITH_LOCKING
+
+/* support for functions that modify packets */
+#undef WITH_MODIFY_PKTS
+
+/* if NAPATECH cards are supported */
+#undef WITH_NAPATECH
+
+/* if Napatech_x cards are supported */
+#undef WITH_NAPATECH_X

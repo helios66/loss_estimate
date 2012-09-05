@@ -1,0 +1,14 @@
+#define NONE 0
+#define REG  1
+#define BV1  2
+#define BV2  4
+#define BV4  8
+#define I1   16
+#define I2   32
+#define I4   64
+#define REL8   128
+#define REL16   256
+#define REL32   512
+#define REGREL8 1024
+#define REGREL16 2048
+#define REGREL32 4096

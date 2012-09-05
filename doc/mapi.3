@@ -1,0 +1,470 @@
+.\" MAPI man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapi.3 |less
+.\"
+.TH MAPI 3 "July, 2006"
+.SH NAME
+MAPI \- Monitoring Application Programming Interface
+.SH SYNOPSIS
+.B #include <mapi.h>
+.sp
+.BI "int mapi_create_flow(char *" dev ");"
+.br
+.BI "char* mapi_create_offline_device(const char *" path", int " format "); "
+.br
+.BI "int mapi_start_offline_device(const char *" dev ");"
+.br
+.BI "int mapi_delete_offline_device(char *" dev ");"
+.br
+.BI "int mapi_close_flow(int " fd ");"
+.br
+.BI "int mapi_apply_function(int " fd ", char* " funct ", ...);"
+.br
+.BI "int mapi_connect(int " fd ");"
+.br
+.BI "struct mapipkt * mapi_get_next_pkt(int " fd ", int " fid ");"
+.br
+.BI "int mapi_loop(int " fd ", int " fid ", int " cnt ", mapi_handler);"
+.br
+.BI "mapi_results_t * mapi_read_results(int " fd ", int " fid ");"
+.br
+.BI "int mapi_read_error(int *" err_no ", char *" err_str ");"
+.br
+.BI "int mapi_get_flow_info(int " fd ", mapi_flow_info_t *" info ");"
+.br
+.BI "int mapi_get_next_flow_info(int " fd ", mapi_flow_info_t *" info ");"
+.br
+.BI "int mapi_get_function_info(int " fd ", int " fid ", mapi_function_info_t *" info ");"
+.br
+.BI "int mapi_get_next_function_info(int " fd ", int " fid ", mapi_function_info_t *" info ");"
+.br
+.BI "int mapi_get_device_info(int " devid ", mapi_device_info_t *" info ");"
+.br
+.BI "int mapi_get_next_device_info(int " devid ", mapi_device_info_t *" info ");"
+.br
+.BI "int mapi_get_scope_size(int " fd ");"
+.br
+.BI "int mapi_is_remote(int " fd ");"
+.br
+.BI "int mapi_stats(char *" dev ", struct mapi_stat *" stats ");"
+.SH DESCRIPTION
+MAPI builds on the simple and powerful abstraction of the network flow. In
+MAPI, a network flow is generally defined as a sequence of packets that
+satisfy a given set of conditions. In contrast with existing models, MAPI
+gives the network flow a first class status: flows are named entities, and
+users may create or destroy flows, read, sample or count packets of a flow,
+apply functions to flows, and retrieve other traffic statistics from a
+flow. Furthermore, MAPI allows the correlation of a network flow with a set
+of remote and distributed monitoring sensors.
+This page provides a description of the main operations provided by
+MAPI. For information regarding the functions that can be applied
+to network flows please refer to the
+.BR mapi_stdflib (3)
+page.
+.SH ROUTINES
+.BI "int mapi_create_flow(char *" dev ");"
+.br
+.B mapi_create_flow()
+is used to create a new network flow. The flow consists of all packets that arrive
+in the device
+.IR dev .
+Instead of using a local device, a set of remote monitoring sensors can also be defined. In that case, the argument should contain the hostname (or IP address) and the monitoring interface of every monitoring sensor using the format "host1:dev1, host2:dev2, host3:dev3".
+Upon successful creation, it returns a unique flow descriptor for the newly
+created flow, otherwise returns -1.
+.sp
+.BI "char* mapi_create_offline_device(const char *" path", int " format "); "
+.br
+.B mapi_create_offline_device()
+is used to create a device that reads packets from a trace file.
+It creates a new network flow that consists of the packets from the trace file.
+It returns the device name that should be used in 
+.B mapi_start_offline_device.
+.IR path
+specifies the name of the trace file to open.
+The format of the captured packets is specified by the
+.IR format
+parameter:
+.RS 4
+.TP 4
+.B MFF_RAW
+- A raw MAPI tracefile format.
+.TP 4
+.B MFF_PCAP
+.BR tcpdump (8)
+- libpcap format
+.TP 4
+.B MFF_DAG_ERF
+ERF Type 2 Ethernet Variable Length Record format used by the DAG card
+family
+.TP 4
+.B MFF_NAPATECH
+A special Napatech record format used by the Napatech card series.
+.RE
+.sp
+In case of errors, it returns NULL.
+.sp
+.BI "int mapi_start_offline_device(const char *" dev ");"
+.br
+.B mapi_start_offline_device
+starts reading packets from the trace file
+that has been opened through
+.B mapi_create_offline_device().
+.IR dev
+is the device name that corresponds to the tracefile, and has been returned
+from
+.B mapi_create_offline_device.
+Upon success, it returns 0. Otherwise, in error cases, it returns -1.
+.sp
+.BI "int mapi_delete_offline_device(char *" dev ");"
+.br
+Deletes the device that reads packets from a trace file and has been opened through
+.B mapi_create_offline_device().
+.IR dev
+is the device name that corresponds to the tracefile, and has been returned
+from
+.B mapi_create_offline_device.
+Upon success, it returns 0. Otherwise, in error cases, it returns -1.
+.sp
+.BI "int mapi_close_flow(int " fd ");"
+.br
+.B mapi_close_flow()
+is used to close the network flow denoted by the flow descriptor
+.IR fd .
+Upon successful operation, it returns 0, otherwise -1.
+.sp
+.BI "int mapi_apply_function(int " fd ", char* " funct ", ...);"
+.br
+.B mapi_apply_function()
+applies the predefined function
+.I funct
+to all packets of the network flow denoted by the flow descriptor
+.IR fd .
+Depending on the applied function, additional arguments may be passed.
+For information regarding the available functions please refer to the
+.BR mapi_stdflib (3)
+page.
+Upon success it returns a newly allocated relevant function descriptor
+.IR fid ,
+otherwise -1.
+.sp
+.BI "int mapi_connect(int " fd ");"
+.br
+.B mapi_connect()
+is used to connect to the flow denoted by the flow descriptor
+.I fd
+and start receiving information. The call may fail depending on the requestor's priviledges and
+requirements. Upon success, it returns 0. In case of
+authorization error, it returns -1, otherwise -2.
+.sp
+.BI "struct mapipkt * mapi_get_next_pkt(int " fd ", int " fid ");"
+.br
+.B mapi_get_next_packet()
+returns a pointer to the next available packet for the flow denoted by
+.IR fd .
+If no such packet exists, the call blocks until such a packet is received.
+In order to receive packets, the function
+.B TO_BUFFER
+must have been previously applied to the flow, and the corresponding identifier 
+.I fid
+(returned by
+.BR mapi_apply_function() )
+must be passed to 
+.BR mapi_get_next_packet() .
+The information and acutaul data of every packet is saved in
+.B struct mapipkt 
+that is defined in mapi.h:
+.sp
+.nf
+struct mapipkt {
+  unsigned long long ts;  //NTP 64-bit timestamp of packet as defined in RFC 1305
+  unsigned short ifindex; //Interface index
+  unsigned caplen;        //Number of bytes from the packet that were captured
+  unsigned wlen;          //Wire length. Real lenght of packet as seen on network
+  unsigned char pkt;      //Pointer to the IP packet
+};
+.fi
+.sp
+In case that an error is occured, 
+it returns 
+.B NULL.
+.sp
+.BI "int mapi_loop(int " fd ", int " fid ", int " cnt ", mapi_handler " callback ");"
+.br
+.B mapi_loop()
+invokes the handler
+.I callback
+after it has received a packet of the flow denoted by 
+.IR fd .
+The
+.I callback
+function is invoked for the next
+.I cnt
+packets of the flow. If
+.I cnt
+is -1,
+.I callback
+is invoked for all future packets of the flow.
+The function
+.B TO_BUFFER
+must have been previously applied to the flow, and the corresponding identifier 
+.I fid
+(returned by
+.BR mapi_apply_function() )
+must be passed to 
+.BR mapi_loop() .
+In case of success it returns 0, otherwise -1.
+.sp
+.BI "mapi_results_t * mapi_read_results(int " fd ", int " fid ");"
+.br
+.B mapi_read_results()
+receives the results of the function denoted by
+.I fid
+that has been applied to the flow 
+.IR fd .
+.B mapi_read_results()
+returns a pointer to a 
+.B mapi_results_t
+struct, which is specified in mapi.h:
+.sp
+.nf
+typedef struct mapi_results {
+  void* res;                    //actual result
+  unsigned long long ts;        //timestamp
+  int size;                     //result size
+} mapi_results_t;
+.fi
+.sp
+In case that the flow has a scope of more than one monitoring sensors, 
+.B mapi_read_results()
+returns a vector of
+.B mapi_results_t
+structs that contains the result of each sensor.
+The memory for the results of each function is allocated from the stub once,
+during the instantiation of the flow.
+.sp
+The timestamp
+.IR ts
+is the number of microseconds since 00:00:00 UTC, January 1, 1970 (the number
+of seconds is the upper 32 bits).
+For flows associated with a local interface, it refers to the time when the MAPI stub
+(i.e., the user application) received the result from mapid.
+For flows associated with remote interfaces, it refers to the time when mapicommd
+received the result from its associated local mapid. Mapicommd then just forwards
+this timestamp to the MAPI stub of the remote application.
+This avoids any interference with the network RTT.
+.sp
+In case of error,
+.B mapi_read-results()
+returns 
+.B NULL.
+.sp
+.BI "int mapi_read_error(int *" err_no ", char *" err_str ");"
+.br
+.B mapi_read_error()
+is used in order to read the description of the last error-code set by MAPI
+daemon or MAPI.
+.B mapi_read_error()
+fills 
+.I err_str
+with the description of the error denoted by
+.IR err_no .
+Memory for both arguments must have been previously allocated.
+.IR err_str
+needs 512 bytes (maximum).
+All the MAPI error codes and their description can be found in the errors.mapi file.
+Upon success it returns 0, otherwise -1.
+.sp
+.BI "int mapi_get_flow_info(int " fd ", mapi_flow_info_t *" info ");"
+.br
+.B mapi_get_flow_info()
+fills the structure
+.I info
+with information regarding the flow
+.IR fd .
+The
+.I info
+argument is a
+.B mapi_flow_info_t
+struct as specified in mapi.h:
+.sp
+.nf
+typedef struct mapi_flow_info {
+  uid_t uid;                     /* UID of user running the flow */
+  int fd;                        /* flow descriptor */
+  int devid;                     /* ID of the device used by the flow */
+  char device[MAPI_STR_LENGTH];  /* name of device used by the flow */
+  unsigned num_functions;        /* number of applied functions */
+  time_t start;                  /* start of flow */
+  time_t end;                    /* end of flow */
+  enum mapi_flow_status status;  /* status of flow */
+} mapi_flow_info_t;
+.fi
+.sp
+Enough memory for the data must have been previously allocated.
+.sp
+.BI "int mapi_get_next_flow_info(int " fd ", mapi_flow_info_t *" info ");"
+.br
+.B mapi_get_next_flow_info()
+fills the structure
+.I info
+with information regarding the consecutive flow with a flow descriptor greater
+than 
+.IR fd .
+Enough memory for the data must have been previously allocated.
+.sp
+.BI "int mapi_get_function_info(int " fd ", int " fid ", mapi_function_info_t *" info ");"
+.br
+.B mapi_get_function_info()
+fills the structure
+.I info
+with information regarding the function denoted by
+.IR fid ,
+which has been applied to the network flow denoted by
+.IR fd .
+The
+.I info
+argument is a
+.B mapi_function_info_t
+struct as specified in mapi.h:
+.sp
+.nf
+typedef struct mapi_function_info {
+  int fid;                        /* function ID */
+  char name[MAPI_STR_LENGTH];     /* function name */
+  char libname[MAPI_STR_LENGTH];  /* the library of the function */
+  char devtype[MAPI_STR_LENGTH];  /* compatible device type */
+  unsigned long long pkts;        /* number of processed packets */
+  unsigned long long passed_pkts; /* packets that have passed by */
+  int result_size;		  /* size of the function's result */
+} mapi_function_info_t;
+.fi
+.sp
+Enough memory for the data must have been previously allocated.
+.sp
+.BI "int mapi_get_next_function_info(int " fd ", int " fid ", mapi_function_info_t *" info ");"
+.br
+.B mapi_get_next_function_info()
+fills the structure
+.I info
+with information regarding the consecutive function with an identifier
+greater than
+.IR fid ,
+which has been applied to the network flow denoted by
+.IR fd .
+Enough memory for the data must have been previously allocated.
+.sp
+.BI "int mapi_get_device_info(int " devid ", mapi_device_info_t *" info ");"
+.br
+.B mapi_get_device_info()
+fills the structure
+.I info
+with information regarding the device with id
+.IR devid .
+The
+.I info
+argument is a
+.B mapi_device_info_t
+struct as specified in mapi.h:
+.sp
+.nf
+typedef struct mapi_device_info {
+        int id;
+        char device[MAPI_STR_LENGTH];
+        char name[MAPI_STR_LENGTH];
+        char alias[MAPI_STR_LENGTH];
+        char description[1024];
+        int link_speed;
+        int mpls;
+        int vlan;
+} mapi_device_info_t;
+.fi
+.sp
+Enough memory for the data must have been previously allocated.
+In case o DiMAPI,
+.IR devid
+denotes a network scope (list of one or more monitoring devices) and
+.I info 
+is a table with one
+.B mapi_devce_info_t
+instance for each device. 
+.sp
+.BI "int mapi_get_next_device_info(int " devid ", mapi_device_info_t *" info ");"
+.br
+.B mapi_get_next_device_info()
+fills the structure
+.I info
+with information regarding the consecutive device with a device descriptor greater
+than 
+.IR devid .
+Enough memory for the data must have been previously allocated.
+.sp
+.BI "int mapi_get_scope_size(int " fd ");"
+.br
+.B mapi_get_scope_size()
+is used in DiMAPI and returns the number of the monitoring hosts
+that have been declared in 
+.B mapi_create_flow()
+for the network scope denoted by
+.IR fd .
+If the flow does not exist, it returns -1.
+.sp
+.BI "int mapi_is_remote(int " fd ");"
+.br
+Returns 1 if the flow
+.IR fd
+is associated with a remote sensor, otherwise returns 0.
+If the flow does not exist, it returns -1.
+.sp
+.BI "int mapi_stats(char *" dev ", struct mapi_stat *" stats ");"
+.br
+.B mapi_stats() 
+fills a 
+.B mapi_stat
+struct with statistics for the device
+.IR dev
+from when starting reading from the device to the time of the call.
+The
+.B struct mapi_stat
+is defined in mapi.h:
+.sp
+.nf
+struct mapi_stat {
+  unsigned int ps_recv;     /* number of packets received */
+  unsigned int ps_drop;     /* number of packets dropped */
+  unsigned int ps_ifdrop;   /* drops by interface */
+  char *hostname;
+  char *dev;
+};
+.fi
+.sp
+Enough memory for 
+.IR stats
+must have been previously allocated.
+.sp
+In case of DiMAPI, the
+.IR dev
+can be a network scope, that is a list with pairs of hostname - device
+(e.g. "host1:dev1, host2:dev2").
+The 
+.IR stats
+should be a table of
+.B struct mapi_stat
+records, one for each host - device pair, that will be filled with
+the statistics of the corresponding devices in the remote hosts.
+.sp
+In case of error, 
+.B mapi_stats()
+returns -1. 
+On success, it returns the number of devices for which statistics are
+given.
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR mapid (1),
+.BR mapicommd (1),
+.BR mapi_stdflib (3),
+.BR mapi_dagflib (3),
+.BR mapi_trackflib (3),
+.BR mapi_anonflib (3),
+.BR tcpdump (1),
+.BR pcap (3)

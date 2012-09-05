@@ -1,0 +1,65 @@
+I. INTRODUCTION  
+
+ABW is an application for passive monitoring of used capacity of a network
+line and its distribution between protocols. It runs on top of DiMAPI 
+(Distributed Monitoring Application Interface). 
+
+Primary advantages of monitoring used capacity by ABW when compared to active
+monitoring or using SNMP are the following:
+
+    - Monitoring is completely non-intrusive, it does not affect user traffic
+      in any way, it can run continuously and it measures real used capacity
+      (instead of throughput of test packets after stressing user traffic).
+
+    - We can monitor capacity usage in short intervals (e.g., 1 second) 
+      and therefore detect short peaks.
+
+    - We can distinquish capacity used by different protocols in different 
+      layers of the OSI hierarchy (L2, L3, L4 or application protocols)
+
+A combination of header filtering and payload searching is used to detect
+application protocols that use dynamic ports.
+
+II. LOCAL AND DISTRIBUTED MODE
+
+ABW can be used in to modes:
+
+    - In the local mode with MAPI, the user interface on the web server
+	   contacts directly all remote monitoring stations capturing packets.
+
+    - In the distributed mode with DiMAPI, the user interface on the web server
+	   contacts only the central station, which in turn gathers results from
+		remote monitoring stations capturing packets.
+
+ABW can also use a combination of these two modes. That is the web server can
+contact some remote monitoring stations directly and obtain results from other 
+monitoring stations through the central station. 
+
+You simply point the conf.php script on the web server to the right station for 
+each monitored link - to the central station or to a remote monitoring station. 
+
+Using the central station makes configuration in conf.php a little bit 
+simpler, but contacting the remote monitoring stations directly currently 
+provides faster response and is recommended.
+
+III. MONITORING CARDS
+
+Each remote monitoring station needs one or more network cards to capture
+packets from monitored links. It can be regular NICs, DAG cards or COMBO cards.
+Each card needs to be connected to on optical splitter or to a mirroring port 
+on a router or switch.
+
+Two directions of one monitored link can be monitored by:
+
+a) two ports on a multi-port monitoring card, 
+b) two single-port monitoring cards in one remote monitoring station, 
+c) two single-port monitoring cards in two remote monitoring stations. 
+
+This is configured in the ABW configuration file abw.conf. ABW gathers results 
+correctly and displays them in one graph (inbound traffic in the upper part 
+of the graph and outbound traffic in the lower part of the graph).
+
+You can monitor only one direction of a link, in which case only upper
+or only lower part of the graph is displayed and you can also mix both
+directions together when using a mirroring port, in which case only upper
+part of the graph is displayed and it includes both directions.

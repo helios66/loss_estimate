@@ -1,0 +1,7 @@
+./autogen.sh
+./configure
+make
+make install
+
+then run as root 
+ear_live.sh start

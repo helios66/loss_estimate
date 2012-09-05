@@ -1,0 +1,56 @@
+#!/bin/bash
+function test {
+    if [ $1 = 0 ] ; then
+	echo OK
+    else
+	echo Failed
+	exit;
+    fi
+}
+
+if [ $# -lt 1 ]; then
+    echo "Usage: runtests <device>"
+    exit;
+fi  
+
+echo "Some tests require live traffic in order to proceed."
+echo "Please make sure that $1 has some traffic."
+echo ""
+
+tests=(
+test_bpf_filter
+test_byte_counter
+test_pkt_counter
+test_close_flow
+test_create_flow
+#test_cooking   ...should be move to a separate file (runtests_extraflib probably?)
+test_get_flow_info
+test_get_next_pkt
+test_hash
+test_loop
+test_mapi_apply_function
+test_mapi_connect
+test_mapi_get_function_info
+test_get_next_fuction_info
+test_get_flow_info
+test_mapi_read_results
+test_packet_read
+test_off_res2file
+test_off_stats
+test_sample_pkts
+#test_regexp ...should be move to a separate file (runtests_extraflib probably?)
+test_str_search
+#test_to_file ...an issue with the trace permissions (cannot rm by non-root)
+test_wrong_order
+);
+
+for test_file in ${tests[@]}; do 
+	echo -n $test_file":"
+	if [ "$2" == "-v" ]; then
+		./$test_file $1  
+	else
+		./$test_file $1 > /dev/null
+	fi
+	test $?
+	i=$i+1
+done

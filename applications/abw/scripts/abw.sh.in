@@ -1,0 +1,116 @@
+#!/bin/bash
+#
+# Copyright (c) 2006, CESNET
+# All rights reserved.
+#
+# LICENSE TERMS
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the company nor the names of its contributors 
+#       may be used to endorse or promote products derived from this 
+#       software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+# THE COMPANY OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# $Id$
+#
+
+export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+ABW_DIR=@ABW_DIR@
+ABW=${ABW_DIR}/bin/abw
+ABW_COMMAND="$ABW -f ${ABW_DIR}/etc/abw.conf -g"
+
+usage() {
+	echo "Usage: abw.sh { start | stop | status | restart }"
+}
+
+test -x $ABW || exit 0
+
+case "$1" in
+
+	start)
+
+		PROCESSES_ABW=`ps -ef|grep "abw -f"|grep -v grep|wc -l`
+		echo "PROCESSES_ABW: $PROCESSES_ABW"
+
+		if [ $PROCESSES_ABW -eq 0 ]; then
+  			echo starting abw
+  			$ABW_COMMAND 2>&1 > /dev/null
+		else
+  			echo abw already running
+		fi
+
+		;;
+
+	stop)
+
+		PROCESSES_ABW=`ps -ef|grep "abw -f"|grep -v grep|wc -l`
+   	echo "PROCESSES_ABW: $PROCESSES_ABW"
+
+   	if [ $PROCESSES_ABW -gt 0 ]; then
+			echo "killall abw"
+  			killall abw
+			sleep 2
+
+			PROCESSES_ABW=`ps -ef|grep "sshd: abw@notty"|grep -v grep|wc -l`
+			echo "Parrent processes related to old abw: $PROCESSES_ABW"
+			if [ $PROCESSES_ABW -gt 0 ]; then
+				PID=`ps -ef|grep "sshd: abw@notty"|grep -v grep|awk '{print $2}'`
+				kill $PID
+				sleep 2
+			fi
+				
+			PROCESSES_ABW=`ps -ef|grep "abw -f"|grep -v grep|wc -l`
+   		echo "PROCESSES_ABW: $PROCESSES_ABW"
+
+   		if [ $PROCESSES_ABW -gt 0 ]; then
+				echo "killall -s 9 abw"
+				killall -s 9 abw
+			fi
+		fi
+
+		;;
+
+	status)
+
+		if ps -ef|grep "abw -f"|grep -v grep >/dev/null 2>&1 ; then
+			echo "abw status: started"
+			exit 0
+		else
+			echo "abw status: stopped"
+			exit 1
+		fi
+
+		;;
+
+	restart)
+
+		${ABW_DIR}/bin/abw.sh stop
+		sleep 1
+		${ABW_DIR}/bin/abw.sh start
+		;;
+
+	*)
+
+		usage
+		exit 1
+esac
+
+exit 0

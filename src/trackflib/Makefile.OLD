@@ -1,0 +1,42 @@
+CC = gcc
+INCLUDE = -I. -I..
+CFLAGS  = -g -Wall -Wsign-compare -Wpointer-arith -Wnested-externs \
+	-Wmissing-declarations -Wcast-align -D_GNU_SOURCE $(INCLUDE) \
+	-DDEBUG=1
+TARGETS = tracklib.so
+
+all: $(TARGETS)
+
+tracklib.o: tracklib.c ../mapidflib.h ../mapi.h
+	$(CC) $(CFLAGS) -c $<
+
+tracklib.so: tracklib.o trackftp.o gnutella.o torrent.o dc.o edonkey.o ipoverip.o irc.o ../flist.o ../mstring.o log.o
+	$(CC) $(CFLAGS) -shared -o $@ $^ -lfl -lrt -L.. -L. $(LIB_DIR)
+	cp tracklib.so ..
+
+log.o:	log.c
+	$(CC) $(CFLAGS) -c $<
+	
+trackftp.o: trackftp.c
+	$(CC) $(CFLAGS) -c $<
+
+gnutella.o:	gnutella.c
+	$(CC) $(CFLAGS) -c $<
+
+torrent.o:	torrent.c
+	$(CC) $(CFLAGS) -c $<
+
+dc.o:	dc.c
+	$(CC) $(CFLAGS) -c $<
+
+edonkey.o:	edonkey.c
+	$(CC) $(CFLAGS) -c $<
+
+irc.o:	irc.c
+	$(CC) $(CFLAGS) -c $<
+
+ipoverip.o:	ipoverip.c
+	$(CC) $(CFLAGS) -c $<
+
+clean:
+	rm -f *.o *.so *- $(TARGETS)

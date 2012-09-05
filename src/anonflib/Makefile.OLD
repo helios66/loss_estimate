@@ -1,0 +1,73 @@
+WITH_FUNCT_STATS=1
+MAPI_DEBUG = 2
+INCLUDE=-I. -I..
+CFLAGS=-g -O2 -Wall -Wsign-compare -Wpointer-arith -Wnested-externs \
+-Wmissing-declarations -Wcast-align -DDEBUG=$(MAPI_DEBUG) -D_GNU_SOURCE $(INCLUDE) -DWITH_FUNCT_STATS -DWITH_MODIFY_PKTS
+
+TARGETS= anonlib.so
+all: $(TARGETS)
+anonlib.o: anonlib.c ../mapidflib.h ../mapi.h
+	gcc $(CFLAGS) -c $<
+anonlib.so:  names.o anonlib.o anonymize.o uncook.o ../mapiipc.o ../flist.o ../fhelp.o decoders.o anon_snort_decode.o anon_print_packet.o anon_checksums.o anon_prefix_preserving.o md5.o sha1.o sha256.o anonymization_functions.o prefix_preserving_map.o print_packet.o crc32.o des.o aes.o pcre/libpcre.a
+	gcc $(CFLAGS) -shared -o $@ $^ -lfl -lrt -lpcap -lm -L../ -L. $(LIB_DIR)
+	cp $@ ..
+
+names.o: names.h names.c
+	gcc $(CFLAGS) -c names.c
+
+anonymize.o: anonymization.h anonymize.c
+	gcc $(CFLAGS) -c anonymize.c
+
+uncook.o: uncook.c 
+	gcc $(CFLAGS) -c uncook.c
+	
+anon_print_packet.o: anon_print_packet.c
+	gcc $(CFLAGS) -c anon_print_packet.c
+
+print_packet.o: print_packet.c
+	gcc $(CFLAGS) -c print_packet.c
+
+anon_snort_decode.o: anon_snort_decode.c
+	gcc $(CFLAGS) -c anon_snort_decode.c
+
+anon_checksums.o: anon_checksums.c
+	gcc $(CFLAGS) -c anon_checksums.c
+
+anon_prefix_preserving.o: anon_prefix_preserving.c
+	gcc $(CFLAGS) -c anon_prefix_preserving.c
+
+prefix_preserving_map.o: prefix_preserving_map.c
+	gcc $(CFLAGS) -c prefix_preserving_map.c
+
+decoders.o: decoders.c
+	gcc $(CFLAGS) -c -Wall decoders.c
+clean:
+	@/bin/rm -f *.o *.so *~ $(TARGETS)
+	
+md5.o: md5.c md5.h
+	gcc $(CFLAGS) -c $<
+	
+sha1.o: sha1.c sha1.h
+	gcc $(CFLAGS) -c $<
+
+sha256.o: sha256.c sha256.h
+	gcc $(CFLAGS) -c $<
+
+crc32.o: crc32.c crc32.h
+	gcc $(CFLAGS) -c $<
+
+des.o: des.c des.h
+	gcc $(CFLAGS) -c $<
+
+aes.o: aes.c aes.h
+	gcc $(CFLAGS) -c $<
+
+anonymization_functions.o : anonymization_functions.c anonymization_functions.h
+	gcc $(CFLAGS) -c $<
+
+functions: md5.o sha1.o sha256.o anonymization_functions.o crc32.o des.o aes.o
+	gcc $(CFLAGS) -lm -o test_functions $^
+
+tost:
+	gcc -g -c anon_checksums.c
+	gcc -g decoders.c anon_checksums.o anon_snort_decode.o anon_print_packet.o -lpcap

@@ -1,0 +1,418 @@
+<p>
+<H1>New MAPI-functions</h1>
+<H2>etherlib</h2>
+<font color="red">#WARNING - using etherlib-funcions can easily crash the mapid-daemon if used incorrectly - use with care</font>
+<H3>getres</h3>
+This is the function to use hen you want to read results directly from a function without the buffer, res2file or other functions. This is to avoid race-conditions. When using the getres-function, one must also use the mapi-control-functions:<br>
+getres_t* mapi_request_safe_result_reference(int fd, int fid);<br>
+int mapi_request_update_safe_result(volatile getres_t* getres);<br>
+int mapi_check_updated_result(volatile getres_t* getres);<br>
+<b>Arguments:</b>
+<ul>
+<li>fid: int - functionid for the function you want to read results from.</li>
+</ul>
+<b>Return value:</b> getres_t*<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid_ethereal=mapi_apply_function(fd,"ETHEREAL_RETI","return tcp.srcport");
+fid=mapi_apply_function(fd,"GETRES",fid_ethereal);
+res=mapi_request_safe_result_reference(fd,fid);
+mapi_request_update_safe_result(res);
+while(!mapi_chec_updated_result(res));
+result=&((struct ethereal_reti_data*)res->data)->result;</strong></pre></font>
+
+<H3>ethereal-reti</h3>
+Returns an integer from a packet or protocol-field using the return keyword. Will crash if field-value is not an int. Returns NULL if the field is not present.<br>
+<b>Arguments:</b>
+<ul>
+<li>filter: char* - the filter string.</li>
+</ul>
+<b>Return value:</b> int<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>int* res;<br>
+fid=mapi_apply_function(fd,"ETHEREAL_RETI","return tcp.srcport");
+res=&((struct ethereal_reti_data*)mapi_read_results(fd,fid,MAPI_REF))->result;</strong></pre></font>
+
+<H3>ethereal-rets</h3>
+Returns a string from a packet or protocol-field using the return keyword. Will crash if field-value is not a string. Returns NULL if the field is not present.<br>
+<b>Arguments:</b>
+<ul>
+<li>filter: char* - the filter string.</li>
+</ul>
+<b>Return value:</b> int<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>char* res;
+fid=mapi_apply_function(fd,"ETHEREAL_RETS","return http.request.uri");
+res=((struct ethereal_reti_data*)mapi_read_results(fd,fid,MAPI_REF))->result;</strong></pre></font>
+
+</p>
+<p>
+<H1>Changed MAPI-functions</h1>
+<H2>stdlib</h2>
+<font color="red">#WARNING - using cross-flow result reading can lead to race-conditions and severe slowdown of data-retrieval - use with care</font>
+
+<H3>bucket</h3>
+<b>New: </b>Now takes both a fd and a fid for data-extraction.<br>
+Returns results from other MAPI functions in precise periodic intervals.<br>
+<b>Arguments:</b>
+<ul>
+<li>interval: char*.</li>
+<li>flow_id: int - flowid of result-function</li>
+<li>function_id: int - functionid of result-function</li>
+</ul>
+<b>Return value:</b> void*<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>size=mapi_apply_function(fd,"PKTINFO",PKT_SIZE);
+fid=mapi_apply_function(fd,"BUCKET","1s",fd,size);</strong></pre></font>
+
+<H3>dist</h3>
+<b>New: </b>Now takes both a fd and a fid for data-extraction.<br>
+Returns an array that represents the distribution of results from another function.<br>
+<b>Arguments:</b>
+<ul>
+<li>flow_id: int - flowdescriptor of result-function</li>
+<li>funct_id: int - functionid of result-function</li>
+<li>min: char*</li>
+<li>max: char*</li>
+<li>interval: char*</li>
+</ul>
+<b>Return value:</b> unsigned long long[]<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>gap=mapi_apply_function(fd,"GAP");
+fid=mapi_apply_function(fd,"DIST",fd,gap,"1ms","2ms","1us");</strong></pre></font>
+
+<H3>res2file</h3>
+<b>New: </b>Now takes both a fd and a fid for data-extraction in the form "fid@fd".<br>
+Stores results from other functions to a file<br>
+<b>Arguments:</b>
+<ul>
+<li>type: int</li>
+<li>functions: char* - list of functions to read results from</li>
+<li>format: char* - R2F_RAW, R2F_ULLSTR, R2F_ULLSEC, R2F_STATS</li>
+<li>header: char* - string to store in the beginning of the file</li>
+<li>filename: char*</li>
+<li>interval: char - "-1" for allways, "0" for when the flow closes, "1s", "1.2ms" etc</li>
+</ul>
+<b>Return value:</b> N/A<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>ts=mapi_apply_function(fd,"PKTINFO",PKT_TS);
+gap=mapi_apply_function(fd,"GAP");
+rate=mapi_apply_function(fd,"STATS",fd,size,"0");
+snprintf(fids_data,20,"%d@%d,%d@%d,%d@%d",gap,fd,size,fd,ts,fd);
+snprintf(types_data,20,"%d,%d,%d",R2F_ULLSEC,R2F_ULLSTR,R2F_ULLSEC);
+mapi_apply_function(fd,"RES2FILE",types_data,fids_data,"column-header string",outfile_data,"0");</strong></pre></font>
+
+<H3>stat</h3>
+<b>New: </b>Now takes both a fd and a fid for data-extraction.<br>
+Returns statistical information about results from other MAPI-functions<br>
+<b>Arguments:</b>
+<ul>
+<li>flow_id: int - flowdescriptor of result-function</li>
+<li>funct_id: int - functionid of result-function</li>
+<li>skip: int - number of packets to skip before reading first result</li>
+</ul>
+<b>Return value:</b> struct stats<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre>size=mapi_apply_function(fd,"PKTINFO",PKT_SIZE);
+fid=mapi_apply_function(fd,"STATS",fd,size,0);</pre></font>
+
+<H3>threshold</h3>
+<b>New: </b>Now takes both a fd and a fid for data-extraction.<br>
+Signals when a certain threshold is reached<br>
+<b>Arguments:</b>
+<ul>
+<li>type: int - CHAR, INT, ULL</li>
+<li>flow_id: int - flowdescriptor of result-function</li>
+<li>funct_id: int - functionid of result-function</li>
+<li>boundary: int - EQ, GT, EQ_D, GT_D, LT_D</li>
+<li>threshold: unsigned long long</li>
+<li>timeout: int</li>
+<li>divider: int</li>
+<li>count: int</li>
+</ul>
+<b>Return value:</b> N/A<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>ts=mapi_apply_function(fd,"PKTINFO",PKT_TS);
+gap=mapi_apply_function(fd,"BYTE_COUNTER");
+mapi_apply_function(fd,"THRESHOLD",TYPE_ULL,fd,gap,EQ,<font color="red" size="+1" face="courier">FIXME: hvordan brukes egentlig threshold?</font></strong></pre></font>
+
+</p>
+
+<p>
+<h1>unchanged MAPI-functions</h1>
+<H2>Basic functions</h2>
+<H3>bpf_filter</h3>
+Filters packets according to a BPF-filter.<br>
+<b>Arguments:</b>
+<ul>
+<li>bpf_filter: char* - the bpf-filter string</li>
+<li>optimized: int - 1 if an optimized version of bpf-filter should be applied. 0 indicates non-optimized version.</li>
+</ul>
+<b>Return value:</b> N/A<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"BPF_FILTER","port 80", 0);</strong></pre></font>
+
+<H3>byte_counter</h3>
+Counts numbers of bytes in a flow<br>
+<b>Arguments:</b> N/A
+<b>Return value:</b> unsigned long long<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"BYTE_COUNTER");</strong></pre></font>
+
+
+<H3>cooking</h3>
+Process the packets of a flow by doing IP-defragmentation and TCP-reassembly<br>
+<b>Arguments:</b>
+<ul>
+<li>threshold: int - minimum stram size</li>
+<li>timeout: int - timeout value for further processing after the first arival of a packet.</li>
+</ul>
+<b>Return value:</b> N/A<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"COOKING",32768,30);</strong></pre></font>
+
+
+<H3>ethereal</h3>
+Filter packets with an ethereal filter<br>
+<b>Arguments:</b>
+<ul>
+<li>filter: char* - ethereal filter string</li>
+</ul>
+<b>Return value:</b> N/A<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"ETHEREAL","tcp.port==80");</strong></pre></font>
+
+
+<H3>flow_report</h3>
+Netflow v5 & v9 probe<br>
+<b>Arguments:</b>
+<ul>
+<li>record_type: char* - "NETFLOW_V5" or "NETFLOW_V9"</li>
+<li>transport: char* - "SHMEM" or "&lt;host&gt;:&lt;port&gt;"</li>
+<li>key_template: char*</li>
+<li>record_template: char*</li>
+</ul>
+<b>Return value:</b> struct ifp_dgram<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"FLOW_REPORT","NETFLOW_V5","SHMEM","","");</strong></pre></font>
+
+<H3>gap</h3>
+Returns the time delay between two consecutive packets in a flow
+<b>Arguments:</b> N/A<br>
+<b>Return value:</b> unsigned long long<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"gap");</strong></pre></font>
+
+<H3>pkt_counter</h3>
+Counts number of packets in a flow<br>
+<b>Arguments:</b> N/A<br>
+<b>Return value:</b>  unsigned long long<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"PKT_COUNTER");</strong></pre></font>
+
+
+
+
+
+<H3>pkt_info</h3>
+Returns information about a packet<br>
+<b>Arguments:</b>
+<ul>
+<li>info: int - "PKT_TS", packet timestamp  or "PKT_SIZE", packet size</li>
+</ul>
+<b>Return value:</b> unsigned long long<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"PKTINFO",PKT_SIZE);</strong></pre></font>
+
+<H3>sample</h3>
+Performs sampling<br>
+<b>Arguments:</b>
+<ul>
+<li>ivalue: int - for DETERMINISTIC it specifies a sampling interval of 1/value packets. For PROBABILISTIC a packet will be sampled with value% probability</li>
+<li>mode: int - DETERMINISTIC or PROBABILISTIC</li>
+</ul>
+<b>Return value:</b> unsigned long long<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"SAMPLE",100,DETERMINISTIC);</strong></pre></font>
+
+
+
+<H3>str_search</h3>
+Search payload of a packet for a spesific pattern<br>
+<b>Arguments:</b>
+<ul>
+<li>pattern: char* - searchpattern. Can contain non-printable characters or binary data in Snort-syntax</li>
+<li>offset: int - offset into packet for starting the search</li>
+<li>depth: int - maximum depth of the search</li>
+</ul>
+<b>Return value:</b> N/A<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"STR_SEARCH","ab|63 64|",0,1500);</strong></pre></font>
+
+<H3>to_buffer</h3>
+Store packets of a flow to a buffer so that they can be read using mapi_get_next_packet<br>
+<b>Arguments:</b> N/A<br>
+<b>Return value:</b> struct mapipkt<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"TO_BUFFER");</strong></pre></font>
+
+<H3>to_file</h3>
+Store packets of a flow to a file<br>
+<b>Arguments:</b>
+<ul>
+<li>format: int - MFF_PCAP, MFF_DAG_ERF, MFF_RAW</li>
+<li>file_name: char* - the filename to store packets to</li>
+<li>count: unsigned long long - number of packets to store. 0 for unlimited</li>
+</ul>
+<b>Return value:</b> N/A<br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>fid=mapi_apply_function(fd,"TO_FILE",MFF_DAG_ERF,1000);</strong></pre></font>
+
+
+
+
+
+</p>
+
+<p>
+<H1>Additional MAPI-administration-functions</h1>
+<p>
+<H3>char* mapi_create_offline_device(char *path,int format);</h3>
+Creates an offline-device reading from filename path of the specified format, and returns the constructed devicename.<br>
+
+<H3>int mapi_start_offline_device(char *dev);</h3>
+Starts reading from the offline device.<br>
+
+<H3>int mapi_delete_offline_device(char *dev);</h3>
+Deletes the offline device. A device must be deleted and recreated before it can be read again.<br><br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<b>
+<pre><strong>char* device = mapi_create_offline_device(argv[1], MFF_DAG_ERF);<br>
+
+for(all i)
+{
+	fd[i] = mapi_create_flow(device);
+	fid[i] = mapi_apply_function(flows[i],"PKT_COUNTER");
+	mapi_connect(flows[i]);
+}
+mapi_start_offline_device(device);
+(...)	
+mapi_delete_offline_device(device);</strong></pre>
+</b></font>
+</p>
+<br><br>
+<p>
+<h3>getres_t* mapi_request_safe_result_reference(int fd, int fid)</h3>
+Get reference to result read from getres-function identified by fd,fid.
+<h3>int mapi_request_update_safe_result(volatile getres_t* getres)</h3>
+Request update of result-set getres.
+<h3>int mapi_check_updated_result(volatile getres_t* getres)</h3>
+Check if update_results-request has been fulfilled.<br><br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+see example for getres-function
+</font>
+</p>
+<br><br>
+<p>
+<H3>int mapi_get_availible_devices(int devicenumber,device_info_t* ret)</h3>
+Fetches information on the device devicenumber, and puts it in the device_info_t-structure. Devices are numbered 0 and up.
+<H3>int mapi_get_next_availible_device(device_info_t* ret)</h3>
+Fetches information on the next device sequentially starting from the one last mentioned in a call to get_availible_devices.
+<H3>int mapi_get_availible_offline_devices(int devicenumber,device_info_t* ret)</h3>
+Fetches information on the first of any device, also offline-devices and dummy-devices for offline-spawning.
+<h3>int mapi_get_next_availible_offline_device(device_info_t* ret);</h3>
+Fetches information on the next of all device sequentially starting from the one last mentioned in a call to get_availible_offline_devices.
+<h3>int mapi_get_availible_libraries(int librarynumber,char** ret)</h3>
+Returns the name of library librarynubmer in the charpointer.
+<h3>int mapi_get_next_availible_library(char** ret)</h3>
+Returns the name of the next library sequential starting from the one last mentioned in a call to get_availible_libraries.
+<h3>int mapi_get_availible_functions(int libnumber, int functionnumber, mapidflib_function_def_mini_t *)</h3>
+Returns information on the funtion functionnumber in the library libnumber and inserts it into the funxction_def_mini_t.
+<h3>int mapi_get_next_availible_function(int libnumber, mapidflib_function_def_mini_t *)</h3>
+Returns information on the next function in the library sequentially starting from the last number given to a get_availible_functions.<br><br>
+
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>mapidflib_function_def_mini_t* infopointeren = malloc(sizeof(mapidflib_function_def_mini_t));
+device_info_t* deviceinfo = malloc(sizeof(device_info_t));
+int i;
+char* navn = NULL;
+
+for(i = 0;mapi_get_availible_offline_devices(i,deviceinfo)==0;i++)
+{
+	printf("Availible driver: %s\n",deviceinfo->devicename);
+	printf("Description: %s\n\n",deviceinfo->description);
+}
+
+for(i = 0;mapi_get_availible_functions(i,0,infopointeren)==0;i++)
+{
+	mapi_get_availible_libraries(i,;&ampnavn);
+	printf("\n\nVi fikk info fra %s:\n",navn);
+	if(infopointeren!=NULL)
+	{
+		printf("Function:\n %s\n",infopointeren->name);
+		printf("Description:\n %s\n",infopointeren->descr);
+		printf("Arguments:\n \"%s\"\n\n",infopointeren->argdescr);
+	}
+	while(mapi_get_next_availible_function(i,infopointeren)==0)
+	if(infopointeren!=NULL)
+	{
+		printf("Function:\n %s\n",infopointeren->name);
+		printf("Description:\n %s\n",infopointeren->descr);
+		printf("Arguments:\n \"%s\"\n\n",infopointeren->argdescr);
+	}
+}</strong></pre>
+</font>
+
+</p>
+
+<p>
+<H1>MAPI-configuration-file changes</h1>
+<H3>syslog=[123]</h3>
+Select log-level from 0 (lowest threshold - debug) to 2 (mostly errors)<br>
+
+<H3>socket=[global | local]</h3>
+If socket=local, a socket will be opened in the users $HOME-directory. if socket=global, a socket will be opened in /tmp.<br>defualt: socket=global<br>
+
+<H3>description=[^\n]</h3>
+any driver or format may have a description-field associated with them. This description is passed along when the user requests device-information.<br><br>
+<b>Exapmle:</b><br>
+<font color="grey" face="courier">
+<pre><strong>socket=local
+
+syslog=1
+
+[driver]
+device=/dev/dag0
+driver=mapidagdrv.so
+description=Dag capture
+
+[format]
+format=MFF_PCAP
+driver=mapinicdrv.so
+description=Offline pcap-capture</strong></pre>
+</font>
+
+</p>
+

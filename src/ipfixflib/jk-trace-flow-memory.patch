@@ -1,0 +1,220 @@
+Index: src/ipfixflib/engine.c
+===================================================================
+--- src/ipfixflib/engine.c	(revision 1529)
++++ src/ipfixflib/engine.c	(working copy)
+@@ -29,6 +29,8 @@
+ 
+ #include "services.h"
+ 
++#define DEBUG_JK
++
+ /* ****************************** */
+ 
+ u_char ignoreAS;
+@@ -1118,7 +1120,11 @@
+ 	   (int)bkt->serviceType);
+   }
+ #endif
+-  
++#ifdef DEBUG_JK
++  npctxt->cacheCnt++;
++  if (bkt->serviceType == SERVICE_TORRENT) { npctxt->torrentCnt++; }
++  if (bkt->serviceType == SERVICE_RTP) { npctxt->rtpCnt++; }
++#endif  
+   /* Cache bookkeeping */
+   cacheBkt->enteredCache = ((long long) time) << 32;
+   NPROBE_FD_SET(FLAG_CACHE_BUCKET, &(cacheBkt->flags));
+@@ -1163,6 +1169,9 @@
+ 	   (int)bkt->serviceType);
+   }
+ #endif
++#ifdef DEBUG_JK
++  npctxt->uncacheCnt++;
++#endif
+ 
+   serviceType = bkt->serviceType;
+   initFlow(npctxt, bkt, proto, isFragment, numPkts, tos, len, stamp, 
+@@ -1699,6 +1708,9 @@
+     if((signed) (theTime - (myBucket->enteredCache >> 32)) >= npctxt->cacheTimeout) {
+       /* expired from cache */
+       myBucket->flowEndReason = FLOW_END_CACHE_EXPIRED;
++#ifdef DEBUG_JK
++      npctxt->endCntCacheExpired++;
++#endif
+       return 1;
+     }
+     return 0;
+@@ -1706,23 +1718,35 @@
+   if((signed) (theTime - (myBucket->lastSeenSent >> 32))  >= npctxt->idleTimeout) {
+     /* flow expired: data not sent for a while */
+     myBucket->flowEndReason = FLOW_END_IDLE;
++#ifdef DEBUG_JK
++    npctxt->endCntIdle++;
++#endif
+     return 1;
+   }
+ 
+   if((signed) (theTime - (myBucket->firstSeenSent >> 32)) >= npctxt->lifetimeTimeout) {
+     /* flow expired: flow active but too old   */
+     myBucket->flowEndReason = FLOW_END_ACTIVE;
++#ifdef DEBUG_JK
++      npctxt->endCntActive++;
++#endif
+     return 1;    
+   }
+   if(myBucket->pktRcvd > 0) {
+     if((signed) (theTime - (myBucket->lastSeenRcvd >> 32)) >= npctxt->idleTimeout) {
+       /* flow expired: data not sent for a while */
+       myBucket->flowEndReason = FLOW_END_IDLE;
++#ifdef DEBUG_JK
++      npctxt->endCntIdle++;
++#endif
+       return 1;
+     }
+     if((signed) (theTime - (myBucket->firstSeenRcvd >> 32)) >= npctxt->lifetimeTimeout) {
+       /* flow expired: flow active but too old   */
+       myBucket->flowEndReason = FLOW_END_ACTIVE;
++#ifdef DEBUG_JK
++      npctxt->endCntActive++;
++#endif
+       return 1;
+     }
+   }
+@@ -1796,6 +1820,9 @@
+       } else {
+ 	if(flushHash) {
+ 	  myBucket->flowEndReason = FLOW_END_FORCED;
++#ifdef DEBUG_JK
++	  npctxt->endCntForced++;
++#endif
+ 	}
+ 
+ #ifdef DEBUG_EXPORT_2
+Index: src/ipfixflib/npctxt.h
+===================================================================
+--- src/ipfixflib/npctxt.h	(revision 1529)
++++ src/ipfixflib/npctxt.h	(working copy)
+@@ -27,6 +27,7 @@
+ 
+ #define FLOW_VERSION_5		 5
+ #define V5FLOWS_PER_PAK		30
++#define DEBUG_JK
+ 
+ struct flow_ver5_hdr {
+   u_int16_t version;         /* Current version=5*/
+@@ -367,6 +368,17 @@
+   u_int32_t statSkipCnt;
+   u_int16_t logfileOpened;
+   FILE      *loghandle;
++#ifdef DEBUG_JK
++  u_int32_t endCntIdle;
++  u_int32_t endCntActive;
++  u_int32_t endCntEof;
++  u_int32_t endCntForced;
++  u_int32_t endCntCacheExpired;
++  u_int32_t cacheCnt;
++  u_int32_t uncacheCnt;
++  u_int32_t torrentCnt;
++  u_int32_t rtpCnt;
++#endif
+ 
+ } np_ctxt_t;
+ 
+Index: src/ipfixflib/nprobe.c
+===================================================================
+--- src/ipfixflib/nprobe.c	(revision 1529)
++++ src/ipfixflib/nprobe.c	(working copy)
+@@ -50,6 +50,8 @@
+ #define BLANK_SPACES               "                     "
+ #define TCP_PROTOCOL               0x06
+ 
++#define DEBUG_JK
++/* #undef DEBUG_LEAK */
+ #define STAT_INTERVAL 30
+ 
+ #define TIME_PROTECTION
+@@ -242,6 +244,32 @@
+   return(NULL);
+ }
+ 
++#ifdef DEBUG_LEAK
++static int getListLength(HashBucket *list)
++{
++  int count = 0;
++  HashBucket *ptr;
++
++  for (ptr = list; ptr; ptr = ptr->next) {
++    count++;
++  }
++  return count;
++}
++
++static int countActiveBuckets(np_ctxt_t *npctxt)
++{
++  u_int i, count = 0;
++ 
++  for (i = 0; i < npctxt->hashSize; i++) {
++    u_int mutexIdx = i % MAX_HASH_MUTEXES;
++    pthread_mutex_lock(&hashMutex[mutexIdx]);
++    count += getListLength(npctxt->hash[i]);
++    pthread_mutex_unlock(&hashMutex[mutexIdx]);
++  }
++  return count;
++}
++#endif
++
+ /* ****************************************************** */
+ 
+ static void 
+@@ -275,11 +303,51 @@
+ 	       (float)npctxt->totFlows/nowDiff);
+     npctxt->totFlows = 0;
+ 
++#ifdef DEBUG_LEAK
++    {
++      int activeCounted      = countActiveBuckets(npctxt);
++      int activeAccountedFor = npctxt->bucketsAllocated-(npctxt->purgedBucketsLen+npctxt->exportBucketsLen);
++
++      traceEvent(npctxt, TRACE_INFO, "Buckets: [active=%d(counted=%d,lost=%d)][allocated=%d][free=%d][toBeExported=%d][frags=%d]",
++		 activeAccountedFor,
++		 activeCounted,
++		 activeAccountedFor -activeCounted,
++		 npctxt->bucketsAllocated, npctxt->purgedBucketsLen, 
++		 npctxt->exportBucketsLen,
++		 npctxt->fragmentListLen);
++    }
++#else
+     traceEvent(npctxt, TRACE_INFO, "Buckets: [active=%d][allocated=%d][free=%d][toBeExported=%d][frags=%d]",
+ 	       npctxt->bucketsAllocated-(npctxt->purgedBucketsLen+npctxt->exportBucketsLen),
+ 	       npctxt->bucketsAllocated, npctxt->purgedBucketsLen, 
+ 	       npctxt->exportBucketsLen,
+ 	       npctxt->fragmentListLen);
++#endif
++#ifdef DEBUG_JK
++    traceEvent(npctxt, TRACE_INFO, "Flow expiry reasons: [idle=%d][active=%d][eof=%d][forced=%d][cacheexpired=%d]", 
++	       npctxt->endCntIdle,
++	       npctxt->endCntActive,
++	       npctxt->endCntEof,
++	       npctxt->endCntForced,
++	       npctxt->endCntCacheExpired);
++    traceEvent(npctxt, TRACE_INFO, "Srv.class: [cached=%d][uncached=%d][torrent=%d][rtp=%d]", 
++	     npctxt->cacheCnt,
++	     npctxt->uncacheCnt,
++	     npctxt->torrentCnt,
++	     npctxt->rtpCnt);
++    traceEvent(npctxt, TRACE_INFO, "Timeouts: [idle=%d],[lifetime=%d], Offline: [%d]",
++	     npctxt->idleTimeout, npctxt->lifetimeTimeout, 
++	     ifp_get_offline_device_status (npctxt->mapi_ctxt));
++    npctxt->endCntIdle         = 0;
++    npctxt->endCntActive       = 0;
++    npctxt->endCntEof          = 0;
++    npctxt->endCntForced       = 0;
++    npctxt->endCntCacheExpired = 0;
++    npctxt->cacheCnt           = 0;
++    npctxt->uncacheCnt         = 0;
++    npctxt->torrentCnt         = 0;
++    npctxt->rtpCnt             = 0;
++#endif
+   }
+   
+   if(npctxt->traceMode) {

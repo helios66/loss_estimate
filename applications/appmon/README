@@ -1,0 +1,106 @@
+OVERVIEW
+--------
+
+  appmon categorizes the monitored traffic and is able to recognize traffic
+  from several P2P applications that use dynamic port numbers. Written on
+  top of DiMAPI, appmon may run on a different host than the monitoring
+  sensor. The results are presented through a web page.
+
+
+PREREQUISITES
+-------------
+
+- MAPI should have been configured with the flags --enable-trackflib and
+  --enable-extraflib enabled for the required functions to be included.
+
+- If appmon is going to be used remotely (ie. running in a different machine 
+  than mapid) the flag --enable-dimapi should also be enabled during the configure 
+  process.
+
+- appmon requires a web server and rrdtool version 1.2 or higher (in
+  Debian, apt-get install apache rrdtool)
+
+- appmon requires librrd and libcgic (in
+  Debian, apt-get install librrd2-dev libcgicg1-dev)
+
+
+COMPILATION
+-----------
+
+- Compile appmon using 'make'. 
+
+
+Server Configuration
+--------------------
+
+- You should configure your webserver to allow cgi script execution.
+  For Apache, just edit /etc/apache/httpd.conf and, uncomment the following:
+
+      AddHandler cgi-script .cgi
+
+- Also you should define the cgi-bin directory where the server can find the 
+  cgi executables. Simply add:
+
+      ScriptAlias /appmon/cgi-bin/ /var/www/appmon/cgi-bin/
+
+  into the virtual host entry of your apache configuration file.
+
+
+Web Directory Initialization
+----------------------------
+
+- Run the script setupdirs.sh to set up the necessary files in your web
+  server's root directory. It takes as parameter the absolute path of the
+  web server's root directory. The script will create a directory appmon
+  and the necessary files and symbolic links for the web interface. For
+  example. 
+  If you are using the root folder and the root folder is /var/www, then $WEB_DIR=/var/www.
+  If you are using the user home directories which may are /home/username/public_html then
+  $WEB_DIR=/home/username/public_html
+
+  ./setupdirs.sh $WEB_DIR
+
+  will create '$WEB_DIR/appmon', and the web interface will be accessible
+  at http://www.yourserver.com/appmon
+
+  Specifically, for the above paths, setupdirs.sh will create:
+
+  $WEB_DIR/test/appmon/index.html
+  $WEB_DIR/test/appmon/cgi-bin
+  $WEB_DIR/test/appmon/cgi-bin/appmon_top.html -> /home/username/appmon/appmon_top.html
+  $WEB_DIR/test/appmon/cgi-bin/appmon.cgi -> /home/username/appmon/appmon.cgi
+  $WEB_DIR/test/appmon/cgi-bin/appmon3.cgi -> /home/username/appmon/appmon3.cgi
+  $WEB_DIR/test/appmon/cgi-bin/appmon24.cgi -> /home/username/appmon/appmon24.cgi
+  $WEB_DIR/test/appmon/cgi-bin/appmonWeek.cgi -> /home/username/appmon/appmonWeek.cgi
+  $WEB_DIR/test/appmon/cgi-bin/appmonMonth.cgi -> /home/username/appmon/appmonMonth.cgi
+  $WEB_DIR/test/appmon/cgi-bin/appmonYear.cgi -> /home/username/appmon/appmonYear.cgi
+  
+
+USAGE
+-----
+
+- mapid should be running at the monitoring sensor (see 'doc/mapitutor.pdf' for details)
+
+- If you are going to run appmon from another machine, then mapicommd should also 
+  be running on the monitoring sernsor
+
+- appmon takes two arguments: the subnet that is going to be monitored and
+  the address of the monitoring sensor (scope). Let's see two different
+  scenarios:
+
+  * appmon and mapi running on different hosts:
+  Organization with class B network. Monitoring sensor with IP address
+  147.52.30.2. Its monitoring interface is eth1. Mapid monitors all traffic
+  to and from 147.52.*  appmon should be invoked as
+
+  ./appmon  147.52  147.52.30.2:eth1
+
+  If appmon runs on workstation.ics.forth.gr, then the web interface will
+  be accessible at http://workstation.ics.forth.gr/appmon
+
+  * appmon and mapid running on the same host:
+  A user wants to monitor the traffic of his/her workstation with IP
+  address 139.91.70.13. Mapid is running on the workstation and monitors
+  the eth0 interface. appmon should be invoked as
+
+  ./appmon  139.91.70.13  localhost:eth0

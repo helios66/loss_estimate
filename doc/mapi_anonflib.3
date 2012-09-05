@@ -1,0 +1,144 @@
+.\" MAPI man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapi_anonflib.3 |less
+.\"
+.TH MAPI_ANONFLIB 3 "June, 2006"
+.SH NAME
+MAPI anonflib \- MAPI Anonymization Functions Library
+.SH SYNOPSIS
+.nf
+\fBANONYMIZE\fP    Applies the specified anonymization function on the field/protocol
+		   specified, per packet of the flow.
+.fi
+.SH DESCRIPTION
+The DiMAPI Anonymization Functions Library (anonflib) provides a set
+of functions that can be used for the anonymization of every field
+of a packet. The protocols currently supported include IP, TCP, UDP,
+ICMP, HTTP and FTP.
+.LP
+The anonymization function can be applied to a network flow using the
+.B mapi_apply_function()
+call.
+For further information about the
+.B mapi_apply_function()
+function call, see the
+.BR mapi (3)
+page.
+.IP "\fBANONYMIZE\fP (char *\fIanonynization_function\fP)"
+The \fIanonymization_function\fP is given in a string with the following format:
+"PROTOCOL, FIELD, ANONYMIZATION_FUNCTION, FUNCTION_PARAM_1, FUNCTION_PARAM_2, ...".
+Spaces are optional, but the function definition will only be accepted in uppercase letters.
+
+Naturally, an anonymization policy is expressed as a series of one or more 
+anonymization functions.
+For example, you could anonymize all HTTP traffic and all FTP traffic by applying the
+relevant functions one after another on the same network flow.
+
+Packets matching the specification of the anonymization policy are being
+modified accordingly. Packets not matching remain unchanged.
+.SH ANONYMIZATION FUNCTIONS
+A list of all the anonymization functions currently supported.
+
+.IP "\fBUNCHANGED\fP"
+Leaves the specified field unchanged.
+.sp
+.IP "\fBMAP\fP"
+Maps a field to an integer. Each field will have different mapping
+except SRC_IP and DST_IP which share common mapping as well as SRC_PORT and DST_PORT.
+The rest of the fields share a common mapping based on their length:
+fields with length 4 have a common mapping, 
+fields with length 2 have their own and finally 
+fields with length 1 share their own mapping.
+Mapping cannot be applied to payload and IP/TCP options, only in header fields.
+This function takes no arguments.
+.sp
+.IP "\fBMAP_DISTRIBUTION\fP"
+Field is replaced by a value extracted from a distribution like uniform or Gaussian,
+with user-supplied parameters. The first parameter defines the type of distribution and can be UNIFORM or GAUSSIAN.
+If type is UNIFORM the next 2 arguments specify the range inside which the distribution selects uniformly numbers.
+If type is GAUSSIAN the next 2 arguments specify the median and standard deviation.
+Similarly to MAP function, MAP_DISTRIBUTION can only be applied to IP, TCP, UDP and ICMP header fields, except IP and TCP options.
+For instance, mapi_apply_function(fd, "ANONYMIZE", "IP,SRC_IP,MAP_DISTRIBUTION,GAUSSIAN,10,1");
+.IP "\fBSTRIP\fP"
+Removes the field from the packet.
+Optionally, STRIP may not remove the whole field but can keep a portion of it.
+The user defines the number of bytes to be kept.
+STRIP cannot be applied to IP, TCP, UDP and ICMP headers except IP and TCP options and can be fully applied to all HTTP and FTP fields.
+A valid example would be:
+mapi_apply_function(fd, "ANONYMIZE", "IP,SRC_IP,STRIP,2");
+This will keep the last two bytes of the source IP address found in each IP datagram.
+.IP "\fBRANDOM\fP"
+Replaces the field with a random number.
+Multiple instances of the same value in a field may be replaced by
+different random numbers.
+This function takes no arguments.
+.IP "\fBFILENAME_RANDOM\fP"
+A sub-case of RANDOM. If the field is in a filename format, e.g. ``picture.bmp''
+then the extension is left untouched while the filename is replaced by random characters.
+Notice that everything after the dot '.' is left untouched.
+.IP "\fBHASHED\fP"
+Field is replaced by a hash value. Supported hash functions are MD5, SHA, SHA_2, CRC32 and AES and TRIPLE_DES for encryption.
+Note that MD5, SHA, SHA_2 and CRC32 may generate values with less or greater length than the original field.
+The hash functions when applied to IP, TCP, UDP and ICMP header fields, their last bytes are used to replace
+the field. For all the other fields, the padding behavior is supplied as a parameter.
+If the hashed value has less length, the user can pad the rest bytes with zero by defining
+PAD_WITH_ZERO or can strip the remaining bytes by defining STRIP_REST as an argument to the function.
+If the hashed values has length greater than the original field, then the rest of packet contents are shifted accordingly,
+that means no overwriting of other packet fields is being done.
+In all cases, the packet length in protocol headers is adjusted to the new length.
+.IP "\fBPATTERN_FILL\fP"
+Field is repeatedly filled with a pattern. The pattern can be an integer or string.
+This function takes as a parameter the type of pattern, INTEGER for integer and STR for strings,
+and the pattern to be used, for instance:
+mapi_apply_function(fd, "ANONYMIZE", "HTTP,COOKIE,PATTERN_FILL,STR,NO_COOKIES");
+.IP "\fBZERO\fP"
+A sub-case of pattern fill where field is set to zero. This function takes no arguments.
+.IP "\fBREPLACE\fP"
+Field is replaced by a single value (a string). The packet length is modified accordingly,
+based on the length of the replace pattern. The final length cannot exceed
+the maximum packet size. This function takes the value to be used as an argument.
+.IP "\fBPREFIX_PRESERVING\fP"
+Can only be applied to source and destination IP addresses and performs a key-hashing based on AES,
+preserving the prefixes of IP addresses.
+.IP "\fBPREFIX_PRESERVING_MAP\fP"
+Can only be applied to source and destination IP addresses and performs a preserving the prefixes of IP addresses using mapping table.
+.IP "\fBREGEXP\fP"
+Field is transformed according to the specified regular expression. As an example,
+performing anonymize(p, TCP, PAYLOAD, REGEXP, ``(.*) password:(.*) (.*)'',{NULL,``xxxxx'',NULL})
+in a packet p we can substitute the value of a ``password:'' field with the ``xxxxx'' string.
+Each ``(.*)'' in the regular expression indicates a match and the last argument is a set of replacements
+for each match (NULL leaves match unmodified).
+.IP "\fBCHECKSUM_ADJUST\fP"
+This function re-calculates the packet checksum, and is applied after every other
+anonymization function. This function can be only applied to CHECKSUM field (IP).
+
+.SH PROTOCOLS & FIELDS
+Here all the supported protocols & fields are referenced.
+
+.IP "\fBCommon to all protocols\fP"
+PAYLOAD
+.IP "\fBCommon to IP, TCP, UDP & ICMP\fP"
+CHECKSUM
+.IP "\fBIP protocol fields\fP"
+SRC_IP, DST_IP, TTL, TOS, ID, IP_PROTO, VERSION, IHL, OPTIONS, FRAGMENT_OFFSET, PACKET_LENGTH
+.IP "\fBCommon to TCP & UDP\fP"
+SRC_PORT, DST_PORT
+.IP "\fBTCP protocol fields\fP"
+SEQUENCE_NUMBER, ACK_NUMBER, FLAGS, WINDOW, TCP_OPTIONS, URGENT_POINTER, OFFSET_AND_RESERVED
+.IP "\fBUDP protocol fields\fP"
+UDP_DATAGRAM_LENGTH
+.IP "\fBICMP protocol fields\fP"
+TYPE, CODE
+.IP "\fBHTTP protocol fields\fP"
+HTTP_VERSION, METHOD, URI, USER_AGENT, ACCEPT, ACCEPT_CHARSET, ACCEPT_ENCODING, ACCEPT_LANGUAGE, ACCEPT_RANGES, AGE, ALLOW, AUTHORIZATION,CACHE-CONTROL, CONNECTION_TYPE,  CONTENT_ENCODING, CONTENT_TYPE, CONTENT_LENGTH, CONTENT_LOCATION, CONTENT_MD5, CONTENT_RANGE, COOKIE, DATE, ETAG, EXPECT, EXPIRES, FROM . HOST, IF_MATCH, IF_MODIFIED_SINCE, IF_NONE_MATCH, IF_RANGE, IF_UNMODIFIED_SINCE, LAST_MODIFIED, LOCATION, KEEP_ALIVE, MAX_FORWRDS, PRAGMA, PROXY_AUTHENTICATE, PROXY_AUTHORIZATION, RANGE, REFERRER, RETRY_AFTER, SET_COOKIE, SERVER, TE, TRAILER, TRANSFER_ENCODING, UPGRADE, USER_AGENT, VARY, VIA, WARNING, WWW_AUTHENTICATE, X_POWERED_BY, RESPONSE_CODE, RESP_CODE_DESCR
+.IP "\fBFTP protocol fields\fP"
+USER, PASS, ACCT, FTP_TYPE, STRU, MODE, CWD, PWD, CDUP, PASV, RETR, REST, PORT, LIST, NLST, QUIT, SYST, STAT, HELP, NOOP, STOR, APPE, STOU, ALLO, MKD, RMD, DELE, RNFR, RNTO, SITE, FTP_RESPONSE_CODE, FTP_RESPONSE_ARG
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR mapi (3),
+.BR mapi_stdflib (3),
+.BR mapi_dagflib (3),
+.BR mapi_trackflib (3),
+.BR tcpdump (1),
+.BR pcap (3)

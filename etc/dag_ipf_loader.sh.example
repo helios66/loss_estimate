@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# IPFilter loading script for Endace DAG capturing cards
+#
+# It is run by the mapid daemon upon initialization of
+# DAGIPF_BPF_FILTER function for DAG device type.
+#
+# Expects a tcpdump style expression on standard input.
+# For more information please see the docs for your DAG card.
+
+# Paths to required binaries (Endace utilities): 
+TCPDUMP_COMPILER=tcpdump_compiler
+FILTER_LOADER=filter_loader
+
+# Device to put filter on.
+DEVICE="/dev/dag0"
+
+# Number of interfaces in the coprocessor configuration.
+IFNUM="2"
+
+LINKTYPE="ethernet"
+
+##############################################################################
+
+TMPFILE="/tmp/dag_ipf_loader.temp.$$"
+
+"$TCPDUMP_COMPILER" --reject --outfile "$TMPFILE".ipf 1>"$TMPFILE".tcout 2>&1
+RC="$?"
+
+if [ "$RC" -eq 0 ]; then
+
+    # When you specify an option --iface <0/1> here, then filter will be
+    # applied to the appropriate interface only, not to all interfaces.
+    "$FILTER_LOADER" --initialize --drop --device "$1" --link "$LINKTYPE" \
+        --mapping color --init-ifaces "$IFNUM" --init-rulesets 1 \
+        --infile "$TMPFILE".ipf 1>"$TMPFILE".flout 2>&1
+    RC="$?"
+fi
+
+# In case of success we remove the temporary file
+if [ "$RC" -eq 0 ]; then
+    rm -f "$TMPFILE".ipf
+fi
+
+# We purge empty output files, leaving nonempty for diagnostics.
+for f in "$TMPFILE".tcout "$TMPFILE".flout; do
+    [ -s "$f" ] || rm -f "$f"
+done
+
+exit "$RC"

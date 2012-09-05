@@ -1,0 +1,1319 @@
+\documentclass[a4paper, 11pt]{article}
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{epsfig}
+\usepackage{verbatim}
+\usepackage{times, courier}
+% a greater variety of symbols
+\usepackage{amsmath, amssymb}
+% Nicely format and linebreak URLs in the bibliography (and elsewhere).
+\usepackage{url}
+\makeatletter % Define a new style that will use a smaller font.
+\def\url@newstyle{%
+  \@ifundefined{selectfont}{\def\UrlFont{\sf}}{\def\UrlFont{\small\ttfamily}}}
+\makeatother
+\urlstyle{new}  % Now actually use the newly defined style.
+% fancyvrb for code line numbering etc..
+\usepackage{fancyvrb}
+
+\clubpenalty=10000
+\widowpenalty=10000
+
+\advance\textwidth 1.4cm
+\advance\oddsidemargin -0.7cm
+\advance\evensidemargin -0.7cm
+
+\newenvironment{code}{\small\verbatim}{\endverbatim}
+
+\pagestyle{plain}
+
+\begin{document}
+\title{\bf A Tutorial Introduction to MAPI}
+\date{\small \today}
+\maketitle
+\thispagestyle{empty}
+
+
+
+\section{Introduction}
+
+This document provides a tutorial introduction to the Monitoring Application
+Programming Interface (MAPI). It aims to give first-time users an overview
+of the basic functionality of MAPI for rapid development of advanced
+network monitoring applications.
+
+\subsection{What is MAPI?}
+
+MAPI is a highly {\em expressive} and flexible network monitoring API which
+enables users to clearly communicate their monitoring needs to the
+underlying traffic monitoring platform.
+MAPI has been designed as part of the SCAMPI network monitoring
+system\footnote{\tt http://www.ist-scampi.org/}.
+Briefly, SCAMPI uses programmable hardware to perform computationally
+intensive operations, while the middleware offers support for running
+multiple monitoring applications simultaneously, and MAPI offers a
+standardized API to applications that is much more expressive than existing
+solutions. Furthermore, MAPI can also be used with commodity network
+interfaces or specialized network monitoring hardware (e.g., DAG
+cards\footnote{\tt http://www.endace.com/}).
+
+\subsection{Why should I use MAPI?}
+
+MAPI builds on a generalized flow abstraction that allows users to tailor
+measurements to their own needs.
+MAPI elevates network flows to {\em first-class status}, 
+enabling programmers to define and operate on flows in a flexible and 
+efficient way.
+Where necessary and feasible, MAPI also allows the user to trigger
+custom processing routines not only on summarized data, but also on 
+the packets themselves.
+
+The expressiveness of MAPI enables the underlying monitoring
+system to make informed decisions in choosing the most efficient
+implementation, while providing a coherent interface on top of different
+lower-level elements, including intelligent switches,
+high-performance network processors, and special-purpose network
+interface cards. Thus, besides providing performance benefits,
+MAPI decouples the development of the monitoring applications from the
+environment on top of which they will be executed. Applications are written
+once, and are able to run on top of various monitoring environments without
+the need to alter or re-compile their code.
+
+
+
+\section{Basic Functions}
+
+This section gives an overview of the basic MAPI function calls.
+For more information about the available MAPI functions
+and their complete description please refer to
+{\tt mapi(3)} and {\tt mapi\_stdflib(3)} man pages, also included in
+Appendices \ref{sec:manpage} and \ref{sec:manstdflib}, respectively.
+
+\subsection{Creating and Terminating Network Flows}
+
+Central to the operation of the MAPI  
+is the action of creating  a network  flow:
+
+\begin{code}  
+int mapi_create_flow(char *dev)
+\end{code}
+
+This call creates a network flow and returns a flow 
+descriptor {\tt fd} that refers to it, or -1 on error.
+This  network flow consists of all network packets which 
+go through network device {\tt dev}.
+The packets of this flow can be further reduced to those which satisfy an appropriate
+filter or other condition, as described in Section \ref{apply-functs}.
+
+Besides creating a network flow, monitoring applications may
+also close the flow when they are no longer interested in
+monitoring:
+
+\begin{code}  
+int mapi_close_flow(int fd)
+\end{code}  
+
+After closing a flow, all the structures that have been allocated for the flow are released.
+If the call fails, a value of -1 is returned.
+
+\subsection{Applying functions to Network Flows}
+\label{apply-functs}
+
+Network flows allow users to treat packets
+that belong to different flows in different ways.
+For example, a user may be interested in {\em logging}
+all packets of a flow (e.g. to record an intrusion attempt),
+or in just {\em counting} the packets and their lengths
+(e.g. to count the bandwidth usage of an application),
+or in {\em sampling} the packets
+(e.g. to find the IP addresses that generate most of the traffic).
+The abstraction of the network flow
+allows the user to clearly communicate to the underlying monitoring system
+these different monitoring needs.
+To enable users to communicate these different
+requirements, MAPI enables users to
+associate functions with network flows:
+
+\begin{code}
+int mapi_apply_function(int fd, char * funct, ...)
+\end{code}  
+
+The above association applies the function {\tt funct} 
+to every packet of the network flow {\tt fd},
+and returns a relevant function descriptor {\tt fid}.
+Depending on the applied function, additional arguments may be passed.
+Based on the header and payload of the packet, the function will
+perform some computation, and may optionally discard the packet.
+
+MAPI provides several 
+{\em predefined} functions 
+that cover some standard monitoring needs through the MAPI Standard Library
+({\tt stdflib}).
+For example, applying the {\tt BPF\_FILTER} function with parameter
+{\tt tcp and dst port 80} restricts the packets of the network flow 
+denoted by the flow descriptor {\tt fd}
+to the TCP packets destined to port {\tt 80}. 
+Other example functions include:
+{\tt PKT\_COUNTER} which counts all packets in a flow,
+{\tt SAMPLE} which can be used to sample packets, etc.
+For a complete list of the available functions
+in {\tt stdflib} and their description please refer to the
+{\tt mapi\_stdflib(3)} man page, also included in Appendix~\ref{sec:manstdflib}.
+
+Although these functions enable users to process packets,
+and compute the network traffic metrics they are interested in
+without receiving the packets in their own address space,
+they must somehow communicate their results to the interested users.
+For example, a user that will define that the function
+{\tt PKT\_COUNTER}  will be applied to a flow,
+will be interested in reading what is the number of packets that have
+been counted so far.
+This can be achieved by allocating a small amount of memory
+for a data structure that contains the results.
+The functions that will be applied to the packets
+of the flow will write their results into this data structure.
+The user who is interested in reading the results will read the
+data structure using:
+
+\begin{code}  
+mapi_results_t * mapi_read_results(int fd, int fid)
+\end{code}
+
+The above call receives the results computed by the function
+denoted by the function descriptor {\tt fid},
+which has been applied to the network flow {\tt fd}.
+It returns a pointer to the memory where the result's data structure is stored.
+
+\begin{code}
+typedef struct mapi_results {
+  void* res;			//Pointer to function specific result data
+  unsigned long long ts;	//timestamp
+  int size;			//size of the result
+} mapi_results_t;
+\end{code}
+
+The res field of this data structure is a pointer to the actual result.
+It also provides a 64-bit timestamp for the results, that is the number of microseconds 
+since 00:00:00 UTC, January 1, 1970 (the number of seconds is the upper 32 bits).   
+It refers to the time when the MAPI stub received the result from mapid.
+The memory for the results of each function is allocated from the stub once, 
+during the  instantiation  of the flow.
+
+\subsection{Reading packets from a flow}
+\label{reading-packets}
+
+Once a flow is established, the user will probably want to read
+packets from the flow. Packets can be read one-at-a-time
+using the following {\em blocking} call:
+
+\begin{code}
+struct mapipkt * mapi_get_next_pkt(int fd, int fid)
+\end{code}
+
+which reads the next packet that belongs to flow {\tt fd}.
+In order to read packets, the function {\tt TO\_BUFFER}
+(which returns the relevant {\tt fid} parameter)
+must have previously been applied to the flow.
+If the user does not want to read one packet at-a-time
+and possibly block, (s)he may register
+a callback function that will be called when a packet
+to the specific flow is available:
+
+\begin{code}  
+int mapi_loop(int fd, int fid, int cnt, mapi_handler callback)
+\end{code}  
+
+The above call makes sure that  the handler {\tt callback} 
+will be invoked for each of the next {\tt cnt} packets 
+that will arrive in the flow {\tt fd}.
+
+
+\section{Distributed Monitoring (DiMAPI)}
+\label{sec:dimapi}
+
+The MAPI also offers capabilities for distributed passive network monitoring, using
+many remote and distributed monitoring sensors. This is achieved through an extension
+of the basic MAPI functionallity that we call DiMAPI. We describe in this section the
+basic functionality that DiMAPI offers to users in order to develop advanced distrbuted 
+network monitoring applications.
+
+\subsection{What is DiMAPI?}
+
+DiMAPI is an Application Programming Interface for Distributed Network 
+Monitoring that provides to users the same framework as MAPI.
+It enhances MAPI with the functionality of remote and distributed network monitoring. 
+DiMAPI has been designed as part of the LOBSTER network monitoring system\footnote{\tt http://www.ist-lobster.org/}.
+The applications that use DiMAPI can easily communicate with many remote monitoring
+sensors, properly configure them and retrieve results from every one.
+
+\subsection{When should I use DiMAPI?}
+
+DiMAPI offers the expressive and flexible framework that MAPI provides
+for applications that need to run remotely or use more than one
+monitoring sensors. All the applications that till now run locally
+(in the same computer where the monitoring interface is located), can also
+run remotely (the monitoring interface belongs to a remote host) in exactly 
+the same way by using DiMAPI. Also, DiMAPI can be used for the development
+of applications that communicate with many distributed monitoring sensors, 
+by using the notion of network scope.
+
+\subsection{Writing applications using DiMAPI}
+
+Writing applications using DiMAPI is done in exactly the same way as using MAPI.
+Firstly, using \textit{mapi\_create\_flow} you can create network flows described from
+the flow descriptor that is returned. \textit{mapi\_create\_flow} takes as argument the network scope
+that consists of all the monitoring sensors we want, including the monitoring 
+interface for each one, e.g. 
+  \begin{code}mapi_create_flow("host1:eth0, host1:eth1, host2:/dev/dag, host3:eth0");\end{code}
+For every network flow, you can apply the function you want using the
+\textit{mapi\_apply\_function}. This function will be applied to all the remote monitoring sensors defined
+at the network scope.
+Before getting the results, the \textit{mapi\_connect} function 
+have to be called. To get results from the remote sensors, the \textit{mapi\_read\_results}
+function is used for the corresponding function that have been applied in exactly the same way as in local MAPI.
+
+While in MAPI the \textit{mapi\_read\_results} function returns a single instance of mapi\_results\_t struct, 
+in DiMAPI it returns a vector of mapi\_results\_t structs, one for every remote monitoring sensor 
+(int the same order that these sensors had been declared in \textit{mapi\_create\_flow}.
+We remind that \textit{mapi\_read\_results} returns the following data structure:
+
+\begin{code}
+typedef struct mapi_results {
+  void* res;			//Pointer to function specific result data
+  unsigned long long ts;	//timestamp
+  int size;			//size of the result
+} mapi_results_t;
+\end{code}
+
+For flows  associated  with  remote  interfaces, the timestamp that is returned by 
+\textit{mapi\_read\_results} refers to the time when
+mapicommd received the result from its associated local mapid.  
+mapiommd then just forwards this timestamp to the MAPI stub of the remote
+application.  This avoids any interference with the  network  RTT.
+The necessary memory for these structs has been allocated, once per every function applied.
+
+In order to know the number of the remote monitoring hosts that our network scope 
+consists of, and so the number of the mapi\_results\_t instances that \textit{mapi\_read\_results}
+will return, we use the \textit{mapi\_get\_scope\_size} function.
+
+\begin{code}
+int mapi_get_scope_size(int fd)
+\end{code}
+
+This function takes as a single argument the flow descriptor and returns the number of
+the corresponding monitoring sensors. In case of a local MAPI application, it returns 1.
+In this way we provide full compatibility between MAPI and DiMAPI applications. 
+
+The other MAPI function that returns data from the monitoring sensors is the 
+\textit{mapi\_get\_next\_pkt} function. In DiMAPI, the \textit{mapi\_get\_next\_pkt} returns packets from
+the monitoring sensors in a round-robin way, if it is possible. 
+Finally, in order to terminate, cleanup and close a network flow the \textit{mapi\_close\_flow}
+fucntion is used.
+
+\section{Management function calls}
+MAPI contains various management function calls that provides information about
+a running MAPI daemon (MAPId). These function calls provides information about
+available devices and libraries as well as active flows and functions applied to
+flows.
+
+The available function calls are:
+\begin{code}
+int mapi_get_device_info(int devicenumber, mapi_device_info_t* info);
+int mapi_get_next_device_info(int devicenumber, mapi_device_info_t* info);
+int mapi_get_library_info(int libnum, mapi_lib_info_t *info);
+int mapi_get_next_library_info(int libnum, mapi_lib_info_t* info);
+int mapi_get_libfunct_info(int libnum, mapi_libfunct_info_t *info);
+int mapi_get_libfunct_next_info(int libnum, mapi_libfunct_info_t *info);
+int mapi_get_flow_info(int fd, mapi_flow_info_t *info);
+int mapi_get_next_flow_info(int fd, mapi_flow_info_t *info);
+int mapi_get_function_info(int fd, int fid, mapi_function_info_t *info);
+int mapi_get_next_function_info(int fd, int fid, mapi_function_info_t *info);
+\end{code}
+
+The mapi\_get\_?\_info calls, retrieves information about one specific resource
+identified by an integer ID. The mapi\_get\_next\_?\_info calls returns information
+about the next resource with a hight ID than the one specified. This is used for
+looping through all available resources.
+
+The following code is an example on how the management functions can be used for
+listing all available libraries and the functions in each library:
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+int id=-1,fid;
+mapi_lib_info_t info;
+mapi_libfunct_info_t finfo;
+	
+printf("ID\tName\t# functions\n");
+while(mapi_get_next_library_info(id++,&info)==0) {
+	printf("%d\t%s\t%d\n",info.id,info.libname,info.functs);
+	fid=-1;
+	while(mapi_get_next_libfunct_info(info.id,fid++,&finfo)==0)
+  	    printf("\t\t%s(%s)\n",finfo.name,finfo.argdescr);		
+}
+\end{Verbatim}
+
+This code uses mapi\_get\_next\_library\_info to loop through all available libraries 
+and print out the id and name of the library and the number of functions. 
+It then uses the mapi\_get\_next\_libfunct\_info to loop through and print 
+information about all the available functions in each library.
+
+\section{Installation}
+
+MAPI is available from {\tt http://mapi.uninett.no} as a source
+code distribution.
+Currently MAPI has been tested with the Linux OS and supports the following
+monitoring interfaces:
+\begin{itemize}
+\item Commodity Ethernet NICs
+\item Endace DAG cards
+\item Napatech capture cards
+\end{itemize}
+
+It is recommended to download the latest public source code release.
+You can also checkout the latest development version from the subversion
+repository using the following command:
+\begin{code}
+svn co --username public --password public \
+        https://svn.testnett.uninett.no/mapi/trunk
+\end{code}
+
+\subsection{Software Compilation}
+
+After you have unpacked the sources, you first need to
+configure the distribution using the supplied {\tt configure}
+script.\footnote{In case you have checked out the sources from the
+subversion repository, you
+need to first run the supplied {\tt bootstrap.sh} script in order to create
+the generated autoconf files. It requires the latest versions of the
+{\tt autoconf}, {\tt automake}, and {\tt libtool} tools.} 
+The following configure options are available for enabling support for
+optional features:
+
+\renewcommand{\arraystretch}{1.6}
+\begin{tabular}{rp{7cm}}
+{\tt --enable-dimapi} & Support for remote and distributed monitoring (cf.
+Section~\ref{sec:dimapi}) \\
+{\tt --enable-ssl} & Enable encryption of DiMAPI traffic \\
+{\tt --enable-dag} & Support for Endace DAG packet capture cards \\
+{\tt --enable-napatech} & Support for Napatech packet capture cards \\
+\multicolumn{2}{l}{MAPI function libraries} \\
+{\tt --enable-trackflib} & Build the traffic characterization library \\
+{\tt --enable-anonflib} & Build the traffic anonymization library \\
+{\tt --enable-ipfixflib} & Build the NetFlow export library \\
+{\tt --enable-extraflib} & Build the Extra MAPI function library \\
+\multicolumn{2}{l}{Miscellaneous options} \\
+{\tt --enable-funcstats} & Enable function statistics. This option enables packet
+counters for each applied function \\
+\end{tabular}
+\renewcommand{\arraystretch}{1.0}
+\\\\
+
+\noindent Follow these steps to compile and install the software:
+\begin{code}
+./configure
+make
+make install
+\end{code}
+
+The default installation prefix is {\tt /usr/local} and can be changed with
+the {\tt --prefix} configure parameter. All files are installed in
+appropriate directories under the prefix path. For example, binaries are
+installed in {\tt <prefix>/sbin}.
+
+\subsubsection{Library path}
+
+The {\tt libmapi} library is installed by default into {\tt
+/usr/local/lib}. Some Linux distributions do not scan this directory as
+part of the default library path, so this can cause problems to programs
+linked with the shared version of {\tt libmapi}.
+
+To resolve this issue, you can add {\tt /usr/local/lib} to the default
+system library path by adding the line {\tt /usr/local/lib} into {\tt
+/etc/ld.so.conf}.  After saving it, run {\tt ldconfig} to update the system
+library cache.
+
+Another possible option, however not recommended, is to set the environment
+variable {\tt LD\_LIBRARY\_PATH} as follows:
+
+\begin{code}
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+\end{code}
+
+
+\subsection{Monitoring Sensor Configuration}
+
+In order to setup a monitoring sensor, the MAPI daemon (\textit{mapid}) has to 
+be configured and run to the monitoring machine.
+\textit{mapid} is configured via the \textit{mapi.conf} configuration file, located in the
+installation directory (usually \textit{/usr/local/etc/mapi/mapi.conf}).
+In this file we can configure the network interfaces that can provide \textit{mapid} with network packets,
+their corresponding MAPI drivers, the MAPI function libraries that we want to support in 
+this \textit{mapid}, the libraries and drivers path and other.
+A typical example of this file is given below:
+
+\begin{scriptsize}
+\begin{verbatim}
+libpath=/usr/local/share/mapi
+drvpath=/usr/local/share/mapi
+
+libs=stdflib.so:extraflib.so
+
+dimapi_port=2233
+syslog_level=1
+logfile=
+
+[driver]
+device=eth0
+driver=mapinicdrv.so
+
+[driver]
+device=eth1
+driver=mapinicdrv.so
+
+[driver]
+device=lo
+driver=mapinicdrv.so
+description=This is a driver for local capture
+
+[format]
+format=MFF_PCAP
+driver=mapinicdrv.so
+description=Offline pcap-capture
+
+\end{verbatim}
+\end{scriptsize}
+
+For DiMAPI, the MAPI communication daemon (\textit{mapicommd}) must also run to the 
+monitoring machine.
+\textit{mapicommd} is responsible for accepting requests for all the MAPI calls from remote hosts,
+forward them to the local \textit{mapid} and return the answers and results from the local
+\textit{mapid} back to the remote application.
+\textit{mapicommd} uses TCP sockets with optional SSL encryption for the communication.
+The port number that \textit{mapicommd} uses to listen for incoming connections is defined in
+\textit{mapi.conf} located in the installation directory.
+
+Both mapi deamons, \textit{mapid} and \textit{mapicommd}, support loggism mechanism to files
+and to syslog.
+For logging to file, the filename is defined in \textit{mapi.conf} in the \texttt{logfile} field.
+In order to log messages to syslog, mapid and/or mapicommd should be executed
+with the flag -s (mapid -s and/or mapicommd -s). 
+Two different types of messages are sent to syslog, debug messages and
+general information messages. \textit{mapi.conf} the syslog
+level can be configured:
+\begin{itemize}
+\item \textbf{syslog\_level=0}: Log only general information and not debugging messages.
+\item \textbf{syslog\_level=1}: Log general information plus debugging information. Debug messages are printed to stdout and syslog.
+\item \textbf{syslog\_level=2}: Log general information plus debugging information. Debug messages are printed only to syslog.
+\end{itemize}
+The default level is 2.
+
+
+\subsection{Compiling new MAPI applications}
+
+Any user is able to write its own MAPI applications and programs, using the basic
+functions described above and the several function libraries that is also provided.
+In order to compile a MAPI program, the flag \textit{-lmapi} should be used.
+For example:
+
+\begin{verbatim}
+     gcc my_mapi_program.c -o my_mapi_program -lmapi
+\end{verbatim}
+
+
+\section{Examples}
+
+The following sections present some example programs
+that introduce the concept of the network flow as defined in MAPI,
+and demonstrate the ease of programming simple applications that perform
+complex monitoring operations using MAPI.
+
+\subsection{Getting Started: Simple Packet Count}
+
+This first simple program demonstrates the basic steps that must be taken
+in order to create and use a network flow. In this example, a network
+flow is used for counting the number of packets destined to a web server
+in a time period of 10 seconds.
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <mapi.h>
+
+int main() {
+
+    int fd, fid;
+    mapi_results_t *result;
+
+    /* create a flow using the eth0 interface */
+    fd = mapi_create_flow("eth0");
+    if (fd < 0) {
+        printf("Could not create flow\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* keep only the packets directed to the web server */
+    mapi_apply_function(fd, "BPF_FILTER", "tcp and dst port 80");
+    
+    /* and just count them */
+    fid = mapi_apply_function(fd, "PKT_COUNTER");
+
+    /* connect to the flow */
+    if(mapi_connect(fd) < 0) {
+        printf("Could not connect to flow %d\n", fd);
+        exit(EXIT_FAILURE);
+    }
+    
+    sleep(10);
+    
+    /* read the results of the applied PKT_COUNTER function */
+    result = (mapi_results_t *)mapi_read_results(fd, fid);
+    printf("pkts: %llu\n", *((unsigned long long*)result->res) );
+    
+    mapi_close_flow(fd);
+    return 0;
+}
+\end{Verbatim}
+
+The flow of the code is as follows: We begin by creating a network flow
+(line~12) that will receive the packets we are interested in.
+We specify that we are going to use the {\tt eth0} network interface
+for monitoring the traffic.
+For a different monitoring adapter we would use something like {\tt
+/dev/scampi/0} for a Scampi adapter, or {\tt /dev/dag0} for a DAG card,
+depending on the configuration. We store the returned flow descriptor in the
+variable {\tt fd} for future reference to the flow.
+
+In the next step we restrict the packets of the newly created flow to
+those destined to our web server by applying the function {\tt
+BPF\_FILTER} (line~19) using the filter {\tt tcp and dst port 80}.
+The filtering expression is written using the {\tt tcpdump(8)}
+syntax. Since we are interested in just counting the packets, we also
+apply the {\tt PKT\_COUNTER} function (line~22). 
+In order to later read the results of that function,
+we store the returned function descriptor in {\tt fid}.
+
+The final step is to start the operation of the network flow by connecting
+to it (line~25). The call to {\tt mapi\_connect()}
+actually activates the flow inside the MAPI daemon ({\tt mapid}),
+which then starts processing the monitored traffic according to
+the specifications of the flow. In our case, it just keeps a count of the
+packets that match the filtering condition.
+
+After 10 seconds, we read the packet count by passing the relevant
+flow descriptor {\tt fd} and function descriptor {\tt fid}
+to {\tt mapi\_read\_results()} (line~33).
+Our work is done, so we close the network flow in order to free the
+resources allocated in {\tt mapid} (line~36).
+
+\subsection{Link Utilization}
+
+Our next example presents an application that periodically reports the
+utilization of a network link. It uses two network flows to separate the
+incoming from the outgoing traffic, and demonstrates how to retrieve the
+results of an applied function by reference.
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <mapi.h>
+
+static void terminate();
+int in_fd, out_fd;
+
+int main() {
+
+    int in_fid, out_fid;
+    mapi_results_t *result1, *result2;
+    unsigned long long *in_cnt, *out_cnt;
+    unsigned long long in_prev=0, out_prev=0;
+    
+    signal(SIGINT, terminate);
+    signal(SIGQUIT, terminate);
+    signal(SIGTERM, terminate);
+
+    /* create two flows, one for each traffic direction */
+    in_fd = mapi_create_flow("eth0");
+    out_fd = mapi_create_flow("eth0");
+    if ((in_fd < 0) || (out_fd < 0)) {
+        printf("Could not create flow\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* separate incoming from outgoing packets */
+    mapi_apply_function(in_fd, "BPF_FILTER",
+            "dst host 139.91.145.84");
+    mapi_apply_function(out_fd, "BPF_FILTER",
+            "src host 139.91.145.84");
+    
+    /* count the bytes of each flow */
+    in_fid = mapi_apply_function(in_fd, "BYTE_COUNTER");
+    out_fid = mapi_apply_function(out_fd, "BYTE_COUNTER");
+
+    /* connect to the flows */
+    if(mapi_connect(in_fd) < 0) {
+        printf("Could not connect to flow %d\n", in_fd);
+        exit(EXIT_FAILURE);
+    }
+    if(mapi_connect(out_fd) < 0) {
+        printf("Could not connect to flow %d\n", out_fd);
+        exit(EXIT_FAILURE);
+    } 
+        
+    while(1) {      /* forever, report the load */
+        
+        sleep(1);
+      
+        result1 = mapi_read_results(
+            in_fd, in_fid);
+        result2 = mapi_read_results(
+            out_fd, out_fid);
+        in_cnt = result1->res;
+        out_cnt = result2->res;
+  
+        printf("incoming: %.2f Mbit/s (%llu bytes)\n",
+                (*in_cnt-in_prev)*8/1000000.0, (*in_cnt-in_prev));
+        printf("outgoing: %.2f Mbit/s (%llu bytes)\n\n",
+                (*out_cnt-out_prev)*8/1000000.0, (*out_cnt-out_prev));
+
+        in_prev = *in_cnt;
+        out_prev = *out_cnt;
+    }
+    
+    return 0;
+}
+
+void terminate() {
+    mapi_close_flow(in_fd);
+    mapi_close_flow(out_fd);
+    exit(EXIT_SUCCESS);
+}
+\end{Verbatim}
+
+The basic initial steps are similar to those in the previous example, with
+the main difference of manipulating two network flows instead of one.
+We begin by creating two network flows
+with flow descriptors {\tt in\_fd} and {\tt out\_fd} (lines~22 and~23)
+for the incoming and outgoing traffic, respectively, and then we
+apply the filters that will differentiate the traffic captured
+by each flow (lines~30--~33).
+In our case, we monitor the link that connects the host
+139.91.145.84 to the Internet. All incoming packets will then have
+139.91.145.84 as destination address,
+while all outgoing packets will have this IP as source address.
+In case that we would monitor a link that connects a whole subnet
+to the Internet, the host in the filtering conditions should be replaced
+by that subnet. For instance, for the subnet 139.91/16,
+we would define the filter {\tt dst net 139.91.0.0} for the incoming traffic.
+
+Since we are interested in counting the amount of traffic
+passing through the monitored link,
+we apply the {\tt BYTE\_COUNTER} function to both flows (lines 36 and 37),
+and save the relevant function descriptors in {\tt in\_fid} and {\tt out\_fid}
+for future reference.
+
+After activating the flows (lines 40--47), we enter the main program loop, 
+which periodically calls the 
+{\tt mapi\_read\_results()} for each flow (lines 53--56) and
+prints the incoming and outgoing traffic in Mbit/s, and the number of bytes
+seen in each one second interval (lines 60--63).
+In each iteration, the current value of each  {\tt BYTE\_COUNTER} function
+result is retrieved by dereferencing {\tt in\_cnt} and {\tt out\_cnt}.
+
+In order to ensure a graceful termination of the program, we have initially
+registered the signals {\tt SIGINT}, {\tt SIGTERM}, and {\tt SIGQUIT} with
+the function {\tt terminate()} (lines 16--18),
+which closes the two flows and terminates the process.
+
+\subsection{Worm Detection}
+
+This example demonstrates how MAPI can be used for the detection of an
+Internet worm---a rather complicated task that requires deep packet
+inspection. The simplified application presented here
+constantly inspects the monitored traffic and
+prints any packets that match the {\em signature} of the Slapper worm.
+
+A signature describes an intrusion threat by matching characteristic
+parts of the attack packet(s) against the packets of the traffic stream.
+Such signatures are commonly used in
+Network Intrusion Detection Systems (NIDSes), which constantly examine
+the network traffic and determine whether any signatures indicating intrusion
+attempts are matched.
+For example, a packet directed to port 80 that contains the string
+{\tt /bin/perl.exe} is probably an indication of a malicious user attacking a
+web server. This attack can be detected by a signature which checks the
+destination port number of each captured packet,
+and defines a string search for {\tt /bin/perl.exe} in the packet payload.
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <net/ethernet.h>
+#include <netinet/ip.h>
+/* inet_ntoa() */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <mapi.h>
+
+static void terminate();
+void print_IP_pkt(struct mapipkt *pkt);
+
+int fd;
+
+int main() {
+
+    int fid;
+    struct mapipkt *pkt;
+    
+    signal(SIGINT, terminate);
+    signal(SIGQUIT, terminate);
+    signal(SIGTERM, terminate);
+
+    /* create a flow using the eth0 interface */
+    fd = mapi_create_flow("eth0");
+    if (fd < 0) {
+        printf("Could not create flow\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* the bpf part of the signature */
+    mapi_apply_function(fd, "BPF_FILTER",
+            "udp and src port 2002 and dst net 139.91.23 and dst port 80");
+    
+    /* the content search part of the signature */
+    mapi_apply_function(fd, "STR_SEARCH",
+            "|00 00|E|00 00|E|00 00|@|00|", 0, 100);
+
+    /* must use TO_BUFFER in order to read full packet records */
+    fid = mapi_apply_function(fd, "TO_BUFFER");
+
+    /* connect to the flow */
+    if(mapi_connect(fd) < 0) {
+        printf("Could not connect to flow %d\n", fd);
+        exit(EXIT_FAILURE);
+    }
+    
+    while(1) {     /* forever, wait for matching packets */
+        
+        pkt = mapi_get_next_pkt(fd, fid);
+        printf("\nSlapper worm packet!\n");
+        print_IP_pkt(pkt);
+    }
+    
+    return 0;
+}
+
+void terminate() {
+    mapi_close_flow(fd);
+    exit(EXIT_SUCCESS);
+}
+\end{Verbatim}
+
+In the same fashion as with the previous examples, the program starts
+by creating a network flow using the {\tt eth0} network interface (line 29).
+We then configure the network flow
+according to the worm signature (lines 36--41).
+For the identification of the Slapper worm,
+we use the following signature taken from the default ruleset of the
+popular Snort Intrusion Detection System\footnote{\tt http://www.snort.org/}:
+
+\begin{code}
+alert udp $EXTERNAL_NET 2002 -> $HTTP_SERVERS $HTTP_PORTS
+(msg:"MISC slapper worm admin traffic";
+content:"|00 00|E|00 00|E|00 00|@|00|"; depth:100;
+reference:url,isc.incidents.org/analysis.html?id=167;
+reference:url,www.cert.org/advisories/CA-2002-27.html;
+classtype:trojan-activity; sid:1889; rev:5;)
+\end{code}
+
+We presume that {\tt \$EXTERNAL\_NET} is set to {\tt any} IP address,
+{\tt \$HTTP\_SERVERS} is set to the subnet 139.91.23,
+and {\tt \$HTTP\_PORTS} is set to 80.
+Given these assumptions, packets that match this signature
+can also be returned by a network flow, after the application
+of the appropriate MAPI functions, as follows:
+\begin{itemize}
+\item the condition {\tt \$EXTERNAL\_NET 2002 -> \$HTTP\_SERVERS \$HTTP\_PORTS}
+is fulfilled by applying the {\tt BPF\_FILTER} function with the filter
+{\tt udp and src port 2002 and dst net 139.91.23 and dst port 80} (line 36).
+
+\item the content search condition {\tt content:"|00 00|E|00 00|E|00 00|@|00|";}
+{\tt depth:100;} is fulfilled by applying the {\tt STR\_SEARCH} function with the
+same {\tt content} and {\tt depth} parameters, and {\tt 0} for the {\tt
+offset} parameter (line 40).
+\end{itemize}
+
+In order to print specific information about each attack packet,
+we have to receive the full records of the matching packets to the
+address space of the application.
+This is accomplished by applying the function {\tt TO\_BUFFER} (line 43),
+which instructs {\tt mapid} to store the packets that match the
+conditions of the flow into a shared memory segment.
+The application can then retrieve the stored records using
+{\tt mapi\_get\_next\_pkt()}.
+
+In the main execution loop, the application blocks into
+{\tt mapi\_get\_next\_pkt()} (line 54) until a matching packet is available.
+When such a packet is captured, the application prints its source and
+destination MAC and IP addresses by calling {\tt print\_IP\_pkt()}.
+The listing of the {\tt print\_IP\_pkt()} function
+is included in Appendix~\ref{sec:misccode}. Since the application has
+access to the full packet record, {\tt print\_IP\_pkt()} can be altered
+as needed to print any other part of the packet, even the whole packet payload.
+
+\begin{comment} % Authentication is removed for now
+\subsection{Authentication and Authorization in DiMAPI}
+This example illustrates the authentication and authorization
+mechanism implemented in DiMAPI. 
+In most cases, administrators of sensors may not want users to have full
+access to the monitoring system for privacy and performance reasons.
+As far as privacy is concerned,
+an administrator may not be willing to provide full packets to users,
+but only anonymized packets, in a way he sees fit.
+To improve the scalability of this, users are supposed to belong in
+Virtual Organizations, and the aforementioned policies apply to VOs
+alone.
+
+The administrator of each sensor can create a file that specifies
+the anonymization policy that will be applied to the flows that
+a user creates.
+The file can be specified in the /src/vod/vod.conf configuration
+file, in the following way:
+
+\begin{code}
+[files]
+policiesfile=/etc/dimapi_policies.conf
+\end{code}
+
+An example of such a policy is the following:
+
+\begin{code}
+[VO]
+ANONYMIZE=TCP:PAYLOAD:STRIP:0
+ANONYMIZE=IP:SRC_IP:RANDOM
+ANONYMIZE=IP:CHECKSUM:CHECKSUM_ADJUST
+
+#[VO]
+#FUNCTION=PROTOCOL:FIELD:ANONYMIZATION_FUNCTION:OPTIONAL_ARGUMENT
+\end{code}
+
+Policies in general specify that the administrator of the sensor, 
+permit the Virtual Organizations identified in the {\tt VO} field
+to receive packets from the network flows they create that are
+anonymized according to the policy he has set.
+In this policy, the conditions restrict the members of VO to
+receive packets with no TCP payload, randomized source IP addresses,
+and fixed checksum field.
+
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+#include <stdio.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <mapi.h>
+
+static int fd;
+
+static void die(int d);
+
+int main(int argc,char **argv)
+{
+  int counter, loop = 10, connect_status;
+  mapi_results_t *dres;
+
+  signal(SIGINT,die);
+  signal(SIGTERM,die);
+  signal(SIGQUIT,die);
+
+  /* create a flow using the eth0 interface */
+  fd = mapi_create_flow("localhost:eth0");
+  if (fd <0)
+  {
+	  printf("Could not create flow\n");
+  }
+
+  /* apply a packet counter */
+  counter = mapi_apply_function(fd,"PKT_COUNTER");
+
+  /* authenticate the user creating the flow */
+  if ( mapi_authenticate(fd, "John","Doe","VO_Of_Unknown_Members") != 0 )
+  {
+    printf("Authentication failed\n");
+    die(0);
+  }
+  
+  /* connect to the flow */
+  connect_status = mapi_connect(fd);
+  if(connect_status < 0)
+  {
+	printf("mapi_connect has failed.\n");
+	die(0);
+  }
+
+  while( loop-- ) //count the packets
+  {
+    sleep(1);
+    dres = mapi_read_results(fd,counter);
+    if(dres)
+      printf("PKTS=%llu\n",*((unsigned long long*)dres->res) );
+    else
+      printf("mapi_read_results failed!\n");
+  }
+
+  die(0);
+  return 0;
+}
+
+ static void die(int d)
+{
+  mapi_close_flow(fd);
+  exit(0);
+}
+
+
+\end{Verbatim}
+
+The user creates a flow (line 21) and then applies the packet counter
+function (line 28). He then proceeds to authenticate himself as the
+creator of the flow. This is done with the {\tt mapi\_authenticate} function (line 31).
+The user is verified to belong in the VO specified, and then the 
+password is checked for matching. When the user connect to
+the flow (line 38), the mapi daemon further checks if the flow is authenticated
+If it does not, an error is returned to the user.
+For this example, the DiMAPI support is needed, so MAPI should be configured with the
+\textit{--enable-dimapi} configuration option.
+
+As an administrator who wants to deploy DiMAPI and its AAI, you should follow the
+following steps:
+
+\begin{enumerate}
+\item Perform {\tt ./configure --enable-dimapi --enable-anonflib --enable-extraflib --enable-authentication}
+
+The AAI is available only in DiMAPI, by definition.
+anonflib and extraflib are needed for the anonymization
+and TCP stream reconstruction functions, respectively.
+
+\item Perform {\tt make \&\& make install}, as usual. Note that there have been compilation errors reported
+with gcc versions < 4.1.2, it is suggested you update your gcc to at least version 4.
+
+\item {\tt cd src/vod \&\& make}
+
+\item Edit the file {\tt vod.conf}, and you'll see the following sections:
+
+\begin{verbatim}
+[ca]
+ip=your_CA_IP
+port=your_CA_port_no
+
+[files]
+# RELATIVE PATHS
+nicfile=example1.conf
+policiesfile=example2.conf
+\end{verbatim}
+
+Edit them so they reflect your desired configuration.
+
+\item Create the file 'example1.conf' in the directory you specified.
+It should contain sections and entries as seen below:
+
+\begin{verbatim}
+[interfaces]
+VO_NAME=ALLOWED_INTERFACE_1:ALLOWED_INTERFACE_2
+\end{verbatim}
+
+\item Create the file {\tt 'example2.conf'} in the directory you specified above.
+In a similar fashion, its entries are formed as shown below:
+
+\begin{verbatim}
+[VO_NAME]
+ANONYMIZE=IP:SRC_IP:ZERO
+# REST OF ANONYMIZE FUNCTIONS. These will be applied to flows that
+# 'belong' to someone that authenticates under VO "VO_NAME".
+\end{verbatim}
+
+\item {\tt cd CAd \&\& make all}
+\item Use the ./adduser script to add users in the CA database.
+\item {\tt start ./cad <portnumber>}
+\item {\tt cd .. \&\& ./vod}
+\item Use {\tt mapi\_authenticate()} in your tests/programs. Note that the scope definition for mapi\_create\_flow() should follow the DiMAPI standard "IP:interface".
+\end{enumerate}
+\end{comment}
+
+\subsection{Using DiMAPI}
+
+This is a simple application that demonstrates the use of DiMAPI for distributed network monitoring.
+In this example we just count all the web packets in every monitoring sensor.
+
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <unistd.h>
+#include <mapi.h>
+
+static void terminate();
+int fd;
+
+int main() {
+
+  int fid;
+  mapi_results_t *dres;
+  unsigned long long *count, total_count=0;
+  int i, loop;
+  int number_of_sensors;
+
+  signal(SIGINT, terminate);
+  signal(SIGQUIT, terminate);
+  signal(SIGTERM, terminate);
+
+  /* create a flow using a scope of three monitoring sensors */
+  fd = mapi_create_flow("sensor.uninett.no:/dev/dag0, 
+               mon1.ics.forth.gr:eth0, 123.45.6.7:eth2");
+  if (fd < 0) {
+    printf("Could not create flow\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* keep only the web packets */
+  if (mapi_apply_function(fd, "BPF_FILTER", "tcp and port 80") < 0) {
+      printf("Could not apply BPF_FILTER function\n");
+      exit(EXIT_FAILURE);
+  }
+
+  /* count them in every monitoring sensor */
+  fid = mapi_apply_function(fd, "PKT_COUNTER");
+  if (fid < 0) {
+    printf("Could not apply PKT_COUNTER function\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* connect to the flow */
+  if(mapi_connect(fd) < 0) {
+    printf("Could not connect to flow %d\n", fd);
+    exit(EXIT_FAILURE);
+  }
+
+  /* get the number of the monitoring sensors */
+  number_of_sensors = mapi_get_scope_size(fd);
+   
+  /* read the results of the applied PKT_COUNTER function from all 
+     hosts every 1 sec */
+  while(loop--){
+    sleep(1);
+
+    dres = mapi_read_results(fd, fid);
+
+    for (i=0; i<number_of_sensors; i++) {
+      count = (unsigned long long*) dres[i].res;
+      printf("web pkts in host %d: %llu\n",i, *count);
+      total_count += *count;
+    }
+    printf("Total web packets: %llu\n",total_count);
+  }
+    
+  return 0;
+}
+
+void terminate() {
+  mapi_close_flow(fd);
+  exit(EXIT_SUCCESS);
+}
+\end{Verbatim}
+
+We create a network flow with a scope of three monitoring sensors (line~23).
+Then we apply to this network flow the functions \textit{BPF\_FILTER} and 
+\textit{PKT\_COUNTER}. These functions will be applied in all monitoring
+sensors we declared. Then we connect to this flow and start receiving results from \textit{PKT\_COUNTER}
+every one second. The \textit{mapi\_read\_results} function returns a 
+\textit{mapi\_results\_t} element. The \textit{mapi\_get\_scope\_size} function gives up the
+number of the monitoring hosts that should give results, 
+one \textit{mapi\_results\_t} instance (in a table) per every monitoring sensor 
+(in our example this will be equal to three). 
+The actual result of the \textit{PKR\_COUNTER} function
+for the monitoring sensor \textit{i} is retrieved from \textit{dres[i].res} field.
+Finally, we close the network flow in order to free all the
+resources allocated in every monitoring sensor.
+For this example, MAPI should be configured with the \textit{--enable-dimapi} configuration option
+for DiMAPI support.
+
+
+\subsection{Using Anonymization}
+
+This is a simple application that shows some basic anonymization features of MAPI.
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+#include <stdio.h>
+#include <mapi.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <net/ethernet.h>
+#include <netinet/ip.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+void print_IP_pkt(struct mapipkt *rec);
+
+int main(int argc, char *argv[]) {
+
+        int fd;
+	int fid;
+	int connect_status;
+	struct mapipkt *pkt;	
+
+	fd=mapi_create_flow("eth0");
+	if(fd==-1) {
+	    printf("Flow cannot be created. Exiting..\n");
+	    exit(-1);
+	}
+
+	//Anonymization of TCP packets
+
+	mapi_apply_function(fd,"BPF_FILTER","tcp");
+
+	//map IP addresses to sequential integers (1-to-1 mapping)
+	mapi_apply_function(fd,"ANONYMIZE", "IP,SRC_IP,MAP");
+	mapi_apply_function(fd,"ANONYMIZE", "IP,DST_IP,MAP");
+
+	//replace with zero, tcp and ip options
+	mapi_apply_function(fd,"ANONYMIZE", "IP,OPTIONS,ZERO");
+	mapi_apply_function(fd,"ANONYMIZE", "TCP,TCP_OPTIONS,ZERO");
+
+	//remove payload
+	mapi_apply_function(fd,"ANONYMIZE", "TCP,PAYLOAD,STRIP,0");
+	//checksum fix in IP fixes checksums in TCP and UDP as well
+	mapi_apply_function(fd,"ANONYMIZE", "IP,CHECKSUM,CHECKSUM_ADJUST");
+	fid = mapi_apply_function(fd, "TO_BUFFER");
+
+	/* connect to the flow */
+	connect_status = mapi_connect(fd);
+	if(connect_status < 0) {
+		printf("Connect failed");
+		exit(0);
+	}
+
+	while(1) {     /* forever, wait for matching packets */
+		
+		pkt = mapi_get_next_pkt(fd, fid);
+		printf("\nAnonymized tcp packet captured!\n");
+		print_IP_pkt(pkt);
+	}
+
+	return 0;
+}
+\end{Verbatim}
+
+
+In the above example, we create a network flow that captures only tcp packets. Then we apply anonymization
+on IP addresses, TCP/IP options, TCP payload and finally we fix TCP/IP checksums. A complete list of
+protocols and anonymization functions supported
+is provided in the {\tt anonflib} man page, included in
+Appendix~\ref{sec:mananonflib}.
+The listing of the {\tt print\_IP\_pkt()} function
+is included in Appendix~\ref{sec:misccode}.
+For this example, the \textit{anonflib} library should be used.
+So, MAPI should be configured with \textit{--enable-anonflib}.
+
+
+
+\appendix
+
+\newpage
+\section{MAPI man page}
+\label{sec:manpage}
+
+\begin{scriptsize}
+\input{man_mapi}
+\end{scriptsize}
+
+\newpage
+\section{MAPI {\tt stdflib} man page}
+\label{sec:manstdflib}
+
+\begin{scriptsize}
+\input{man_mapi_stdflib}
+\end{scriptsize}
+
+\newpage
+\section{MAPI {\tt dagflib} man page}
+\label{sec:mandagflib}
+
+\begin{scriptsize}
+\input{man_mapi_dagflib}
+\end{scriptsize}
+
+\newpage
+\section{MAPI {\tt extraflib} man page}
+\label{sec:manextraflib}
+
+\begin{scriptsize}
+\input{man_mapi_extraflib}
+\end{scriptsize}
+
+\newpage
+\section{MAPI {\tt trackflib} man page}
+\label{sec:mantrackflib}
+
+\begin{scriptsize}
+\input{man_mapi_trackflib}
+\end{scriptsize}
+
+\newpage
+\section{MAPI {\tt anonflib} man page}
+\label{sec:mananonflib}
+
+\begin{scriptsize}
+\input{man_mapi_anonflib}
+\end{scriptsize}
+
+\section{{\tt print\_IP\_pkt()} listing}
+\label{sec:misccode}
+
+\begin{Verbatim}[numbersep=12pt, numbers=left, baselinestretch=1.0, fontsize=\small]
+void print_IP_pkt(struct mapipkt *rec) {
+    
+    int i;
+    unsigned char *p;
+    struct ether_header *eth;
+    struct iphdr *iph;
+    
+    p = &(rec->pkt);
+    eth = (struct ether_header *)p;
+
+    /* print MAC addresses */
+    for(i=0; i<ETH_ALEN; i++) {
+        printf("%.2X", eth->ether_shost[i]);
+        if(i != 5) printf(":");
+    }       
+    printf(" -> ");
+    for(i=0; i<ETH_ALEN; i++){ 
+        printf("%.2X", eth->ether_dhost[i]); 
+        if(i != 5) printf(":");
+    }
+    
+    /* make sure that this is indeed an IP packet */
+    if (ntohs(eth->ether_type) != ETHERTYPE_IP) {
+        printf("print_IP_pkt(): Not an IP packet\n");
+        return;
+    }
+
+    /* lay the IP header struct over the packet data */
+    iph = (struct iphdr *)(p + ETH_HLEN);
+    
+    printf("\n%s -> ", inet_ntoa(*(struct in_addr *)&(iph->saddr)));
+    printf("%s\n", inet_ntoa(*(struct in_addr *)&(iph->daddr)));
+}
+\end{Verbatim}
+
+
+
+\end{document}

@@ -1,0 +1,2 @@
+install mysql, mysql-client, mysql-devel, mysql-server then install the libmysqlclient-dev
+c compilation flag to use mysql database ==> "gcc -o packetloss $(mysql_config --cflags) packetloss.c $(mysql_config --libs)"

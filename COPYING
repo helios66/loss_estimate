@@ -1,0 +1,8 @@
+The server part of DiMAPI (mapid and mapicommd) daemons is distributed
+under GNU General Public License, see LICENSE-GPL file.
+
+The client part of DiMAPI that needs to be linked to applications is
+distributed under BSD license, see LICENSE-BSD file.
+
+The license of applications is indicated in the COPYING file in the
+directory of each application.

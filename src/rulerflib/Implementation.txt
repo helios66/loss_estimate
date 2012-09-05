@@ -1,0 +1,61 @@
+== Introduction ==
+
+This directory contains a MAPI module that allows Ruler filter
+expressions to be used. The MAPI module is given the name of a file
+that contains the Ruler filter. It compiles this filter to a dynamic
+library, loads that library, and then passes packet processing calls
+to the filter.
+
+This document descibes the compilation process, and the APIs involved
+in it, in more detail.
+
+== The compilation process ==
+
+When the MAPI Ruler filter module is given a filter, it needs to
+compile it to a dynamic library module, which can then be loaded
+and executed.  This needs an invocation of the Ruler compiler and
+of a C compiler.
+
+The whole compilation process is handled in the script build-mapi-library.
+Since the name of the C compiler is platform-dependent, and since
+the script needs to know the location of the Ruler compiler,
+build-mapi-library is composed of two components: the largest part
+is the body of the compilation script, called build-mapi-library-body.sh.
+The body is preceded by one of two headers: for the development by
+a configuration header called scipt-develop-prefix.sh that points
+to the Ruler compiler in the parent of this directory; for installation
+by a configuration header calaled script-install-prefix.sh that
+points to the Ruler compiler in the installation destination
+directory.  In both headers the name of the C compiler is substituted
+in by the configure script, based on configure templates called
+script-develop-prefix.sh.in and script-install-prefix.sh.in.  The
+substitution process is handled by the configure script in this
+directory.
+
+
+== The Ruler filtering interface ==
+
+At first sight it seems reasonable to just use the MAPI convention
+for filtering modules for Ruler filters. Unfortunately, this is
+causes some complications, since not all of the MAPI interface is
+sufficiently documented.  Moreover, the MAPI interface is more
+complicated than is necessary for our purposes.
+
+Therefore we use a simpler interface.  Specifically, we expect that
+a Ruler filter has a function with the following signature:
+
+
+int process_packet(
+    const unsigned char *packet,  // A pointer to the packet to handle.
+    unsigned int len,             // The length of the 'data' packet.
+    unsigned char *outpacket,     // A pointer to the output packet buffer.
+    unsigned int *outlen          // The length of the packet in outpacket.
+);
+
+The lengths are in bytes (characters). The function returns 1 if
+it accepts the packet, or 0 if it does not.  If it accepts the
+packet, the rewritten packet is written to the buffer pointed to
+by `outpacket', and *outlen is set to the length of the packet. The
+buffer pointed to by outpacket has at least length 'len'.
+
+

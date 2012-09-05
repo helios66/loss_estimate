@@ -1,0 +1,51 @@
+
+MAPI test suite 
+
+contact: danton@ics.forth.gr
+
+---------------------------------------------------------------
+
+There are two kinds of test in this folder. 
+
+First most of the tests where made according to the return values for 
+the functions as declared in the MAPI man page.
+
+This test are :
+
+./test_bpf_filter eth0
+./test_byte_counter eth0
+./test_close_flow eth0
+./test_create_flow eth0
+./test_get_next_pkt eth0
+./test_loop eth0
+./test_mapi_apply_function eth0
+./test_mapi_connect eth0
+./test_mapi_read_results eth0
+./test_pkt_counter eth0
+./test_sample_pkts eth0
+./test_str_search eth0
+./test_to_buffer eth0
+./test_loop
+./test_get_flow_info eth0
+./test_mapi_get_function_info eth0
+./test_for_error_cases eth0 tests/tracefile
+
+Some other test are based on the correctness of the functions.
+Some known trace files are used in order to see that the functions 
+are returning correct values.
+This test are:
+
+./test_off_bpf_filter  tests/tracefile    
+./test_off_pkt_counter tests/tracefile 	
+./test_off_str_search tests/www.trace
+./test_off_to_buffer tests/tracefile
+./test_tcp_offline_flow tests/tracefile
+
+Also there are two tests for verifying the ethereal-library
+
+./test_off_ethereal_reti tracefile
+./test_off_ethereal_rets tracefile
+
+For a complete testing you can use the "./runtests" script whitch runs
+all the tests and reports the results.
+

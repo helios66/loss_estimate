@@ -1,0 +1,103 @@
+PREFIX=/usr/local
+INSTALL_LIBDIR=$(PREFIX)/lib/mapi
+INSTALL_INCDIR=$(PREFIX)/include/mapi
+INSTALL_BINDIR=$(PREFIX)/bin
+
+# For local libraries (e.g., libpcap)
+LIB_DIR=-L/usr/local/lib
+
+# Debug messages ( not to be set if going in production )
+DEBUG=1
+
+#DAG cards
+WITH_DAG=0
+
+#COMBO6 cards
+WITH_COMBO6=0
+
+#Distributed MAPI functionality
+WITH_DIMAPI=1
+
+#MAPI function statistics
+#With this pkt counters for each function is enabled
+WITH_FUNCT_STATS=1
+
+#Support for flow priorities
+WITH_PRIORITIES=0
+PRIORITIES=3
+
+#Support for functions that modifies packets
+WITH_MODIFY_PKTS=1
+
+#Support for global optimization
+WITH_GLOBAL_OPT=0
+
+#Support for anonymization
+WITH_ANONYMIZATION=0
+
+#Support for application-level filtering (mostly P2P traffic identification)
+WITH_TRACKING=1
+
+#Ipfix flow record generation
+WITH_IPFIX=0
+
+#Set to 1 for easier debugging using valgrind
+#This keeps drivers loaded and causes memory leak when mapid is shut down
+VALGRIND=1
+
+#Ethereal filters
+#Warning, ethereal-filters could easily kill mapid 
+#if not handled correctly by the client. This library
+#should only be used in non-production environments
+WITH_ETHEREAL=0
+
+#Optimized BPF filter
+WITH_OPTIMIZED_BPF_FILTER=0
+
+# ADMISSION CONTROL
+WITH_ADMISSION_CONTROL=0
+WITH_RESOURCE_CONTROL=0
+
+# AUTHENTICATION
+WITH_AUTHENTICATION=0
+
+ifeq ($(WITH_DAG),1)
+DAG_API_DIR=/usr/local/dag/tools
+DAG_INCLUDE_DIR=/usr/local/dag/include
+endif
+
+ifeq ($(WITH_COMBO6),1)
+SCAMPI_PREFIX=/usr/local/src/scampi/scampi
+LIBEROUTER_PREFIX=/usr/local/src/scampi/liberouter
+LOBSTER_PREFIX=/usr/local/src/lobster
+endif
+
+ifeq ($(WITH_ADMISSION_CONTROL),1)
+ADMCTRLCL_LDADD=-ladmctrlcl -lssl
+ADMCTRLCL_HEADERS=admctrl_cl.h ./adm_ctrl/lib/slist.h ./adm_ctrl/config.h
+ADMCTRLCL_BYTESTREAM_H=bytestream.h
+ADMCTRLCL_OBJS=admctrl_cl.o ./adm_ctrl/lib/slist.o
+ADMCTRLCL_CFLAGS=-DWITH_ADMISSION_CONTROL
+#KEYNOTE_CFLAGS=-I/usr/local/keynote
+KEYNOTE_LDADD=-L/usr/local/keynote -lkeynote -lm -lcrypto
+endif
+
+ifeq ($(WITH_RESOURCE_CONTROL),1)
+RESCTRL_HEADERS=resctrl_cl.h
+RESCTRL_OBJS=resctrl_cl.o
+RESCTRL_LDADD=-ldb -lsnprintfv
+RESCTRL_CFLAGS=-DWITH_RESOURCE_CONTROL
+endif
+
+
+## Normally no need to change anything below this
+#################################################
+INSTALL=install
+MKINSTALLDIRS=mkinstalldirs
+
+# -Wno-pointer-sign shuts up "pointer targets differ in signedness", which gcc-4.0 produces
+# en masse
+C_WARNINGS=-Wall -Wsign-compare -Wpointer-arith -Wnested-externs \
+-Wmissing-declarations -Wcast-align -Wchar-subscripts -W
+C_FEATURES=-D_GNU_SOURCE -D_THREAD_SAFE
+CC=gcc

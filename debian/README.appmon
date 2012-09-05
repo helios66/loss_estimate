@@ -1,0 +1,18 @@
+appmon: appmon: Network Traffic Classification tool using MAPI.
+Usage: appmon [-hpav] -u <user subnet> [-n <MonitorTitle>] [-s <host:interface>] [localnet]
+        -h              this page
+	-d		run as daemon
+        -a              anonymize IPs
+        -p              create private page with non anonymized IPs
+        -v              verbose
+        -V              RRD graph verbosity
+        -u userSubnet   provide IP/Net to check
+        -n monitorTitle provide Monitor Title for Webpage
+        -s sensor       Sensor IP and interface. Multiple sensors separated by a comma
+
+Command line example:
+
+appmon -I 1 -s /dev/dag0 -i 300
+
+-I 1: interface 1
+-i 300: intervall 300 s

@@ -1,0 +1,124 @@
+#!/bin/bash
+
+DAGDIR=@DAGDIR@
+DAGFWDIR=${DAGDIR}/share
+
+PATH=${DAGDIR}/bin:$PATH
+
+function usage() {
+   echo "dag.sh { 4.3 | 4.3s | 4.5g2 | 4.5g4 | 6.2 | 8.2 ] [ <card_number> ] [ -f ] [ -p ] }"
+   echo ""
+   echo "<card_number> is x in /dev/dagx. Default is 0."
+	echo "-f     only reload firmware (do not reload driver)"
+	echo "-p     enable PPS output from the card"
+	echo ""
+	echo "If there are more DAG cards in a PC then:"
+	echo "initialize one card without -f (reload both driver and firmware)"
+	echo "and initialize other cards with -f (reload only firmware)"
+}
+
+if [ $# -lt 1 ]; then
+  usage
+  exit
+fi
+
+# Determine card type
+
+if [ $1 = "4.3" -o $1 = "4.3s" -o $1 = "4.5g2" -o $1 = "4.5g4" -o $1 = "6.2" -o $1 = "8.2" ]; then
+  CARD_TYPE=$1
+  shift
+else
+  echo "Unsupported card type"
+  usage
+  exit -1
+fi
+
+# Determine the card number
+
+CARD_NO=0
+if [ $# -gt 0 ]; then
+	if [ ${1:0:1} != "-" ]; then
+   	if [ $1 -ge 0 -a $1 -le 255 ]; then
+      	CARD_NO=$1
+			shift
+   	fi
+	fi
+fi
+
+RELOAD_DRIVER=1
+if [ $# -gt 0 ]; then
+	if [ $1 == "-f" ]; then
+		RELOAD_DRIVER=0
+		shift
+	fi
+fi
+
+PPS_OUT=1
+if [ $# -gt 0 ]; then
+	if [ $1 == "-p" ]; then
+		PPS_OUT=1
+	else
+		echo "Unknown argument"
+		usage
+		exit -1
+	fi
+fi
+
+echo "CARD_TYPE: $CARD_TYPE"
+echo "CARD_NO: $CARD_NO"
+echo "RELOAD_DRIVER: $RELOAD_DRIVER"
+echo "PPS_OUT: $PPS_OUT"
+
+if [ $RELOAD_DRIVER -gt 0 ]; then
+	rmmod dag
+	rmmod dagmem
+
+	KERNEL_VERSION=`uname -r`
+	KERNEL_V4V6=`echo $KERNEL_VERSION | awk -F. '{print $2}'`
+
+	#if [ $KERNEL_V4V6 = "6" ]; then
+	#  insmod /lib/modules/${KERNEL_VERSION}/extra/dagmem.ko dsize=128M
+	#else
+  		modprobe dagmem dsize=128M
+	#fi
+
+	dagload
+fi
+
+if [ $CARD_TYPE = "4.3" ]; then
+  # The following firmware supports transmitting, but not filtering
+  # dagrom -rvp -d /dev/dag${CARD_NO} -f ${DAGFWDIR}/dag43gepcix-terf.bit
+  dagrom -rvp   -d /dev/dag${CARD_NO} -f ${DAGFWDIR}/dag43gepcix-ipf.bit
+  dagld -x      -d /dev/dag${CARD_NO}    ${DAGFWDIR}/copro-ipf43ge.bit
+  dagfour -d /dev/dag${CARD_NO} default nic slen=1540
+elif [ $CARD_TYPE = "4.3s" ]; then
+  dagrom -rvp   -d /dev/dag${CARD_NO} -f ${DAGFWDIR}/dag43pcix-terf.bit
+  dagfour -d /dev/dag${CARD_NO} default slen=1540
+elif [ $CARD_TYPE = "4.5g2" ]; then
+  dagrom -rvp -d /dev/dag${CARD_NO} -f ${DAGFWDIR}/dag45g2pcix-terf-dsm.bit
+  dagconfig -d${CARD_NO} default
+  dagconfig -d${CARD_NO} slen=1540
+elif [ $CARD_TYPE = "4.5g4" ]; then
+  dagrom -rvp -d /dev/dag${CARD_NO} -f ${DAGFWDIR}/dag45g4pcix-terf-dsm.bit
+  dagconfig -d${CARD_NO} default
+  dagconfig -d${CARD_NO} slen=1540
+elif [ $CARD_TYPE = "6.2" ]; then
+  dagrom -rvp   -d /dev/dag${CARD_NO} -f ${DAGFWDIR}/dag62pcix-erf.bit
+  dagld -x      -d /dev/dag${CARD_NO}    ${DAGFWDIR}/dag62rx-erf.bit
+  dagsix -d /dev/dag${CARD_NO} default eth lan slen=1540 long=1540
+elif [ $CARD_TYPE = "8.2" ]; then
+  SECOND_INTERNAL_DEVICE=`expr $CARD_NO + 1`
+  dagrom -rvp   -d${CARD_NO} -f ${DAGFWDIR}/dag82xpci-terf-dsm.bit
+  dagconfig -d${CARD_NO} default
+  dagconfig -d${SECOND_INTERNAL_DEVICE} default
+  dagconfig -d${CARD_NO} slen=1540 mem=128:0 
+else
+  echo "Unsupported card type"
+  usage
+  exit -1
+fi
+
+# Enable PPS output from the first card (can be used by the second card)
+if [ ${PPS_OUT} -gt 0 ]; then
+    dagclock -d${CARD_NO} overout
+fi

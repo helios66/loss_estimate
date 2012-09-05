@@ -1,0 +1,25 @@
+[ipfixflib]
+
+# Observation domain is sent in IPFIX headers. Should be set unique for
+# each probe, in order to avoid template conflicts.
+observationDomain=100
+
+# Router ingress interface. This correspond to the ingressInterface 
+# information element in IPFIX. Not needed unless this information
+# element is exported.
+ingressInterface=1
+
+# Router egress interface. This correspond to the egressInterface 
+# information element in IPFIX. Not needed unless this information
+# element is exported.
+egressInterface=2
+
+# Organization's Enterprise Number, as assigned by IANA.
+# See http://www.iana.org/assignments/enterprise-numbers
+enterpriseid=0
+
+# Flow inactivity in seconds before a flow is exported
+#idleTimeout=30
+
+# Maximum flow lifetime. Flows older than this are forced exported.
+#lifetimeTimeout=240

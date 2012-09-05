@@ -1,0 +1,62 @@
+---------------------- Install -----------------------------
+	- Type 'make' to build tsh2eth converter
+	- Type make install to install the files
+
+Additional packages you may need
+	- tcpreplay
+	- uml-utilities (for the tunctl program)
+	- tshark [tethereal] (for converting erf trace formats)
+
+----------------------- Usage ------------------------------
+
+$ replayer.sh top_trace_dir
+
+-------------------- Information ---------------------------
+
+This script simply replays a trace file collection. 
+There are two things that should be taken in mind.
+
+
+Directory hierarchy.
+
+eg. traces---nlanr---PMA
+           |       |-MEM
+           |       \-SDA
+		   |
+		   \-momo---point1
+		          \-point2
+
+the script will traverse through the directories but the only 
+directories that can have traces to be replayed are the leaves
+(in the example: PMA, MEM, SDA, point1 and point2).
+
+
+Directory and file options.
+
+As a leaf directory is processed, the script makes the following
+checks: whether a tun/tap interface with the directory's name exists
+and whether mapi.conf contains an entry for this interface
+So, in case of a new directory with trace files a tun device with
+its name is created and an entry to the mapi.conf file is added.
+The next step is the trace file preperation. Here, files are 
+converted to pcap format depending on their suffixes.
+eg. for file trace1.tsh.bz2 the script will first bunzip the file
+and then convert the tsh format to pcap.
+Corrently two zip formats are supported: bz2 and gz. And two trace
+file formats: tsh and erf. But more types can be added easily.
+
+Special files
+
+.desc			if present, it contains the descriptions for the 
+				interface to be added in the mapi.conf file. This 
+				file can only contain one line.
+
+.replay-log		contains the output of tcpreplay. Useful if a
+				tracefile cannot be replayed for any reason.
+
+.replay-pid		contains the process id of the tcpreplay associated
+				with each leaf directory. Used to check whether 
+				a replay session is still alive.
+
+for any comments/suggestions/problems please contact 
+	vpappas@ics.forth.gr

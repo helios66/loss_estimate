@@ -1,0 +1,435 @@
+#!/bin/bash
+#
+# Script to test the correctness of the bpf2dagdsm program.
+#
+
+if [ -z "$1" -o ! -x "$1" ]; then
+	echo "Usage: $0 <path-to-bpf2dagdsm-binary>"
+	exit 1
+fi
+
+BINARY="$1"
+
+FIN=/tmp/${0##*/}.stdin.$$
+FOUT_E1=/tmp/${0##*/}.stdout-expect1.$$
+FOUT_E2=/tmp/${0##*/}.stdout-expect2.$$
+FOUT_A=/tmp/${0##*/}.stdout-actual.$$
+FERR=/tmp/${0##*/}.stderr.$$
+FDIFF=/tmp/${0##*/}.diff.$$
+
+rm -f "$FIN" "$FOUT_E1" "$FOUT_E2" "$FOUT_A" "$FERR" "$FDIFF" || exit 1
+
+cat > "$FIN" <<__EOF__
+
+tcp dst port 80
+
+
+host 3.4.5.7
+
+((src host 1.1.1.1 || tcp dst port 80) || (dst host 4.4.4.4)) && ((dst host 2.2.2.2) && (tcp dst port 80))
+
+__EOF__
+
+# Hack to ensure DAG-DSM-TAG is copied as is.
+DAG='$DAG'
+
+cat > "$FOUT_E1" <<__EOF__
+<?xml version="1.0"?>
+<dsm-config version="1.0">
+    <filter>
+        <name>filter0</name>
+        <number>0</number>
+        <ethernet>
+            <ipv4>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <!-- $DAG-DSM-TAG$ bpf-index:2	filters-used:10000000
+         bpf-expression:tcp dst port 80
+    -->
+
+    <filter>
+        <name>filter1</name>
+        <number>1</number>
+        <ethernet>
+            <ipv4>
+                <ip-source>
+                    <addr>3.4.5.7</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-source>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <filter>
+        <name>filter2</name>
+        <number>2</number>
+        <ethernet>
+            <ipv4>
+                <ip-dest>
+                    <addr>3.4.5.7</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <!-- $DAG-DSM-TAG$ bpf-index:5	filters-used:01100000
+         bpf-expression:host 3.4.5.7
+    -->
+
+    <filter>
+        <name>filter3</name>
+        <number>3</number>
+        <ethernet>
+            <ipv4>
+                <ip-source>
+                    <addr>1.1.1.1</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-source>
+                <ip-dest>
+                    <addr>2.2.2.2</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <filter>
+        <name>filter4</name>
+        <number>4</number>
+        <ethernet>
+            <ipv4>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+                <ip-dest>
+                    <addr>2.2.2.2</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <filter>
+        <name>filter5</name>
+        <number>5</number>
+        <ethernet>
+            <ipv4>
+                <ip-dest>
+                    <addr>4.4.4.4</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <ip-dest>
+                    <addr>2.2.2.2</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <!-- $DAG-DSM-TAG$ bpf-index:7	filters-used:00011100
+         bpf-expression:((src host 1.1.1.1 || tcp dst port 80) || (dst host 4.4.4.4)) && ((dst host 2.2.2.2) && (tcp dst port 80))
+    -->
+
+    <interface>
+        <name>iface0</name>
+        <number>0</number>
+    </interface>
+    <interface>
+        <name>iface1</name>
+        <number>1</number>
+    </interface>
+    <interface>
+        <name>iface2</name>
+        <number>2</number>
+    </interface>
+    <interface>
+        <name>iface3</name>
+        <number>3</number>
+    </interface>
+    <interface>
+        <name>iface4</name>
+        <number>4</number>
+    </interface>
+    <partial>
+        <name>all-filters</name>
+        <partial-component>filter0</partial-component>
+        <partial-component>filter1</partial-component>
+        <partial-component>filter2</partial-component>
+        <partial-component>filter3</partial-component>
+        <partial-component>filter4</partial-component>
+        <partial-component>filter5</partial-component>
+    </partial>
+    <stream>
+        <number>0</number>
+        <stream-component>all-filters</stream-component>
+    </stream>
+</dsm-config>
+__EOF__
+
+cat > "$FOUT_E2" <<__EOF__
+<?xml version="1.0"?>
+<dsm-config version="1.0">
+    <filter>
+        <name>filter0</name>
+        <number>0</number>
+        <ethernet>
+            <ipv4>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <!-- $DAG-DSM-TAG$ bpf-index:2	filters-used:10000000
+         bpf-expression:tcp dst port 80
+    -->
+
+    <filter>
+        <name>filter1</name>
+        <number>1</number>
+        <ethernet>
+            <ipv4>
+                <ip-source>
+                    <addr>3.4.5.7</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-source>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <filter>
+        <name>filter2</name>
+        <number>2</number>
+        <ethernet>
+            <ipv4>
+                <ip-dest>
+                    <addr>3.4.5.7</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <!-- $DAG-DSM-TAG$ bpf-index:5	filters-used:01100000
+         bpf-expression:host 3.4.5.7
+    -->
+
+    <filter>
+        <name>filter3</name>
+        <number>3</number>
+        <ethernet>
+            <ipv4>
+                <ip-source>
+                    <addr>1.1.1.1</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-source>
+                <ip-dest>
+                    <addr>2.2.2.2</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <filter>
+        <name>filter4</name>
+        <number>4</number>
+        <ethernet>
+            <ipv4>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+                <ip-dest>
+                    <addr>2.2.2.2</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <filter>
+        <name>filter5</name>
+        <number>5</number>
+        <ethernet>
+            <ipv4>
+                <ip-dest>
+                    <addr>4.4.4.4</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <ip-dest>
+                    <addr>2.2.2.2</addr>
+                    <mask>255.255.255.255</mask>
+                </ip-dest>
+                <tcp>
+                    <dest-port>
+                        <port>80</port>
+                        <mask hex="true">FFFF</mask>
+                    </dest-port>
+                </tcp>
+            </ipv4>
+        </ethernet>
+    </filter>
+    <!-- $DAG-DSM-TAG$ bpf-index:7	filters-used:00011100
+         bpf-expression:((src host 1.1.1.1 || tcp dst port 80) || (dst host 4.4.4.4)) && ((dst host 2.2.2.2) && (tcp dst port 80))
+    -->
+
+    <interface>
+        <name>iface0</name>
+        <number>0</number>
+    </interface>
+    <interface>
+        <name>iface1</name>
+        <number>1</number>
+    </interface>
+    <interface>
+        <name>iface2</name>
+        <number>2</number>
+    </interface>
+    <interface>
+        <name>iface3</name>
+        <number>3</number>
+    </interface>
+    <interface>
+        <name>iface4</name>
+        <number>4</number>
+    </interface>
+    <partial>
+        <name>all-filters</name>
+        <partial-component>filter0</partial-component>
+        <partial-component>filter1</partial-component>
+        <partial-component>filter2</partial-component>
+        <partial-component>filter3</partial-component>
+        <partial-component>filter4</partial-component>
+        <partial-component>filter5</partial-component>
+        <!-- The following interface components ensure that all packets are accepted to the stream (classification only mode). -->
+        <partial-component>iface0</partial-component>
+        <partial-component>iface1</partial-component>
+        <partial-component>iface2</partial-component>
+        <partial-component>iface3</partial-component>
+        <partial-component>iface4</partial-component>
+    </partial>
+    <stream>
+        <number>0</number>
+        <stream-component>all-filters</stream-component>
+    </stream>
+</dsm-config>
+__EOF__
+
+function analyze_results
+{
+	if [ "$BIN_RC" -eq 0 ]; then
+		echo "     OK - binary return code is 0."
+	else
+		echo "FAILURE - binary returned nonzero code $BIN_RC."
+		((RC++))
+	fi
+	
+	if [ -s "$FERR" ]; then
+		echo "FAILURE - there is some stderr output."
+		cat "$FERR" | sed -e 's/^/    /g'
+		((RC++))
+	else
+		echo "     OK - binary wrote nothing to stderr (except possible debugging info)."
+	fi
+	
+	diff -U0 --ignore-all-space --ignore-blank-lines "$1" "$FOUT_A" > "$FDIFF"
+	DIFF_RC="$?"
+	
+	if [ "$DIFF_RC" -eq 0 ]; then
+		echo "     OK - both expected and actual outputs match."
+	else
+		echo "FAILURE - expected and actual outputs DO NOT MATCH:"
+		cat "$FDIFF" | sed -e 's/^/    /g'
+		((RC++))
+	fi
+
+	rm -f "$FOUT_A" "$FERR" "$FDIFF"
+}
+
+RC=0
+
+echo
+echo "Test 1: Without --always-match"
+
+"$BINARY" --num-ports=5 <"$FIN" >"$FOUT_A" 2>"$FERR"
+BIN_RC="$?"
+
+analyze_results "$FOUT_E1"
+
+echo
+echo "Test 2: With --always-match"
+
+"$BINARY" --num-ports=5 --always-match <"$FIN" >"$FOUT_A" 2>"$FERR"
+BIN_RC="$?"
+
+analyze_results "$FOUT_E2"
+
+echo
+echo "Test 3: Limit the number of filters using --max-filters="
+
+"$BINARY" --num-ports=5 --max-filters=2 <"$FIN" >/dev/null 2>"$FERR"
+BIN_RC="$?"
+
+if [ "$BIN_RC" -eq 255 ]; then
+	echo "     OK - binary return code is 255."
+else
+	echo "FAILURE - binary did not return code 255."
+	((RC++))
+fi
+
+if fgrep -q 'The number of filters needed (6) exceeds the given limit (2).' "$FERR"; then
+	echo "     OK - binary returned proper error message."
+else
+	echo "FAILURE - binary did not return proper error message."
+	((RC++))
+fi
+
+echo
+if [ "$RC" -eq 0 ]; then
+	echo "All tests OK."
+else
+	echo "Tests FAILED."
+fi
+echo
+
+rm -f "$FIN" "$FERR" "$FOUT_E1" "$FOUT_E2"
+
+exit "$RC"

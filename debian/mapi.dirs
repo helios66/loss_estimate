@@ -1,0 +1,8 @@
+usr/bin
+usr/sbin
+usr/lib
+usr/share
+etc/mapi
+etc/mapi/post-start.d
+etc/mapi/pre-stop.d
+usr/share/doc/mapi/examples

@@ -1,0 +1,338 @@
+#!/bin/bash
+#
+# Copyright (c) 2006, CESNET
+# All rights reserved.
+#
+# LICENSE TERMS
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the company nor the names of its contributors 
+#       may be used to endorse or promote products derived from this 
+#       software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+# THE COMPANY OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# $Id:$
+#
+
+export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+ABW_DIR=@ABW_DIR@
+ABW_VAR_DIR=@ABW_VAR_DIR@
+
+ABW_INFO_COMMAND=${ABW_DIR}/bin/abw_info
+ABW_CONF=${ABW_DIR}/etc/abw.conf
+RRD_DIR=${ABW_VAR_DIR}/rrd
+GRAPH_DIR=${ABW_VAR_DIR}/graph
+
+usage() {
+	echo "Usage: $0 [ -r ]"
+	echo "   --graph_type={l4|apps}"
+	echo "   --label=<label>"
+	echo "   --session=<session>"
+	echo "   --time=\"resolution1 resolution2 length hhmm YYYYMMDD\""
+	echo "   [ --parameters_id=<parameters_id> ] (default 1)"
+	echo "   [ --maxline={y|n|a} ] (default a)"
+	echo ""
+	echo "   r             - remove old graphs before generating new graphs"
+	echo "   l4            - generate graphs for L4 protocols"
+	echo "   apps          - generate graphs for application protocols"
+	echo "   label         - label in [scope] section in abw configuration file"
+	echo "   session       - arbitrary string that identifies graphs for one request"
+	echo "   parameters_id - id in [parameters] section in abw configuration file"
+	echo "   resolution1 resolution2	- plot averages over these periods"
+	echo "   length        - start time is end time minus this length"
+	echo "   hh:mm YYYYMMDD - end time"
+	echo ""
+	echo "label, time and parameters_id can be specified multiple times"
+	echo ""
+	echo "Example: $0 -r \\"
+	echo "   --graph_type=l4 \\"
+	echo "   --label=Prague_PoP --label=Brno_Pop --parameters_id=1 \\"
+	echo "   --time=\"1 60 10min 14:20 20060617\" --time=\"10 600 5h 09:20 20060617\""
+}
+# end of usage()
+
+if [ $# -lt 1 ]; then
+	usage
+	exit -1
+fi
+
+if [ $1 = "-r" ]; then
+	REMOVE_OLD=1
+	shift
+else
+	REMOVE_OLD=0
+fi
+
+####################
+### Set defaults ###
+####################
+
+MAXLINE="a"
+
+######################
+### Read arguments ###
+######################
+
+LABEL_NO=0
+PARAMETERS_NO=0
+TIME_NO=0
+unset SESSION
+
+while [ $# -gt 0 ]; do
+
+	if [ "${1:0:10}" = "--maxline=" ]; then
+		MAXLINE=${1:10}
+
+	elif [ "${1:0:13}" = "--graph_type=" ]; then
+		if [ "x$GRAPH_TYPE" != "x" ]; then
+			echo "--graph_type can be specified only once"
+			usage
+			exit -1
+		fi
+		GRAPH_TYPE=${1:13}
+
+	elif [ "${1:0:8}" = "--label=" ]; then
+		LABEL[$LABEL_NO]=${1:8}
+		LABEL_NO=`expr $LABEL_NO + 1`
+
+	elif [ "${1:0:10}" = "--session=" ]; then
+		SESSION=${1:10}
+
+	elif [ "${1:0:16}" = "--parameters_id=" ]; then
+		PARAMETERS_ID[$PARAMETERS_NO]=${1:16}
+		PARAMETERS_NO=`expr $PARAMETERS_NO + 1`
+
+	elif [ "${1:0:7}" = "--time=" ]; then
+		TIME[$TIME_NO]=${1:7}
+		TIME_NO=`expr $TIME_NO + 1`
+
+	else
+		echo "Unknown argument $1"
+		usage
+		exit -1
+	fi
+	shift
+done
+
+#######################
+### Check arguments ###
+#######################
+
+if [ "x$GRAPH_TYPE" = "x" ]; then
+	echo "You must specify --graph_type argument"
+	exit -1
+fi
+
+if [ $GRAPH_TYPE != "l4" -a $GRAPH_TYPE != "apps" -a $GRAPH_TYPE != "cpu" ]; then
+   echo "Unknown graph type (only l4, apps and cpu are supported)"
+	usage
+   exit -1
+fi
+
+if [ $LABEL_NO -eq 0 ]; then
+	echo "You must specify at least one --label argument"
+	exit -1
+fi
+
+if [ $TIME_NO -eq 0 ]; then
+	echo "You must specify at least one --time argument"
+	exit -1
+fi
+
+if [ x${MAXLINE} != "xy" -a x${MAXLINE} != "xn" -a x${MAXLINE} != "xa" ]; then
+	echo "--maxline argument must be equal to \"y\", \"n\" or \"a\""
+	exit -1
+fi
+
+#############################################################
+### Determine what script will be used to generate graphs ###
+#############################################################
+
+# This is only a prefix of the script name. Postfix based on whether
+# maximum line should be printed will be appended. Finally, ".sh" 
+# will be appended.
+
+GRAPH_SCRIPT=${ABW_DIR}/bin/rrd_graph_${GRAPH_TYPE}
+
+echo "GRAPH_SCRIPT: $GRAPH_SCRIPT"
+
+######################################
+### Print arguments just for check ###
+######################################
+
+for (( I=0 ; $I<$LABEL_NO ; I++ )) ; do
+	echo "LABEL[$I]: ${LABEL[$I]}"
+done
+
+for (( I=0 ; $I<$PARAMETERS_NO ; I++ )) ; do
+	echo "PARAMETERS_ID[$I]: ${PARAMETERS_ID[$I]}"
+done
+
+for (( I=0 ; $I<$TIME_NO ; I++ )) ; do
+	echo "TIME[$I]: ${TIME[$I]}"
+done
+
+#########################
+### Remove old graphs ###
+#########################
+
+if [ $REMOVE_OLD -gt 0 ]; then
+	rm -f $GRAPH_DIR/graph*
+fi
+
+if [ -n $SESSION ]; then
+	mkdir -p ${GRAPH_DIR}/${SESSION}
+fi
+
+#####################################
+### Go over all --label arguments ###
+#####################################
+
+for (( I=0 ; $I<$LABEL_NO ; I++ )) ; do
+	echo -n "Finding information about label"
+	echo " ${LABEL[$I]} and parameters_id ${PARAMETERS_ID[$I]}"
+
+	COMMAND="${ABW_INFO_COMMAND} -f $ABW_CONF --label ${LABEL[$I]} --direction in"
+	if [ ${PARAMETERS_NO} -gt 0 ]; then
+		COMMAND="$COMMAND --parameters_id=${PARAMETERS_ID[$I]}"
+	fi
+	echo "command: $COMMAND"
+	MEASUREMENT_ARRAY_IN=(`$COMMAND`)
+
+	if [ -n "${MEASUREMENT_ARRAY_IN[0]}" ]; then
+		if [ ${MEASUREMENT_ARRAY_IN[0]} == "scope:" ]; then
+
+			LABEL_IN[$I]=${MEASUREMENT_ARRAY_IN[1]}
+			PREFIX_IN[$I]=${MEASUREMENT_ARRAY_IN[2]}
+
+			DESCRIPTION_IN[$I]=${MEASUREMENT_ARRAY_IN[3]}
+			if [ "${DESCRIPTION_IN[$I]: -1}" != "\"" ]; then
+				J=4
+				END=0
+				while [ $J -lt ${#MEASUREMENT_ARRAY_IN[*]} -a $END -eq 0 ]; do
+					DESCRIPTION_IN[$I]="${DESCRIPTION_IN[$I]} ${MEASUREMENT_ARRAY_IN[$J]}"
+					if [ "${MEASUREMENT_ARRAY_IN[$J]: -1}" = "\"" ]; then
+           			END=1
+        			fi
+					J=`expr $J + 1`
+				done
+			fi
+			DESCRIPTION_IN[$I]=${DESCRIPTION_IN[$I]:1:${#DESCRIPTION_IN[$I]}-2}
+			
+			echo "LABEL_IN[$I]: ${LABEL_IN[$I]}"
+			echo "PREFIX_IN[$I]: ${PREFIX_IN[$I]}"
+			echo "DESCRIPTION_IN[$I]: ${DESCRIPTION_IN[$I]}"
+		fi
+	fi
+
+	COMMAND="${ABW_INFO_COMMAND} -f $ABW_CONF --label ${LABEL[$I]} --direction out"
+	if [ ${PARAMETERS_NO} -gt 0 ]; then
+		COMMAND="$COMMAND --parameters_id=${PARAMETERS_ID[$I]}"
+	fi
+	echo "command: $COMMAND"
+	MEASUREMENT_ARRAY_OUT=(`$COMMAND`)
+
+	if [ -n "${MEASUREMENT_ARRAY_OUT[0]}" ]; then
+		if [ ${MEASUREMENT_ARRAY_OUT[0]} == "scope:" ]; then
+
+			LABEL_OUT[$I]=${MEASUREMENT_ARRAY_OUT[1]}
+			PREFIX_OUT[$I]=${MEASUREMENT_ARRAY_OUT[2]}
+
+			DESCRIPTION_OUT[$I]=${MEASUREMENT_ARRAY_OUT[3]}
+			if [ "${DESCRIPTION_OUT[$I]: -1}" != "\"" ]; then
+				J=4
+				END=0
+				while [ $J -lt ${#MEASUREMENT_ARRAY_OUT[*]} -a $END -eq 0 ]; do
+					DESCRIPTION_OUT[$I]="${DESCRIPTION_OUT[$I]} ${MEASUREMENT_ARRAY_OUT[$J]}"
+					if [ "${MEASUREMENT_ARRAY_OUT[$J]: -1}" = "\"" ]; then
+           			END=1
+        			fi
+					J=`expr $J + 1`
+				done
+			fi
+			DESCRIPTION_OUT[$I]=${DESCRIPTION_OUT[$I]:1:${#DESCRIPTION_OUT[$I]}-2}
+			
+			echo "LABEL_OUT[$I]: ${LABEL_OUT[$I]}"
+			echo "PREFIX_OUT[$I]: ${PREFIX_OUT[$I]}"
+			echo "DESCRIPTION_OUT[$I]: ${DESCRIPTION_OUT[$I]}"
+		fi
+	fi
+done
+# Go to next --label
+
+for (( I=0 ; $I<$LABEL_NO ; I++ )) ; do
+	echo -n "Generating graphs for label"
+	echo " ${LABEL[$I]} and parameters_id ${PARAMETERS_ID[$I]}"
+
+	####################################
+	### Go over all --time arguments ###
+	####################################
+
+	for (( J=0 ; $J<$TIME_NO ; J++ )) ; do
+		TIME_ARRAY=(${TIME[$J]})
+
+		R1=${TIME_ARRAY[0]}
+		R2=${TIME_ARRAY[1]}
+		TIME_LENGTH=${TIME_ARRAY[2]}
+
+		END_TIME=${TIME_ARRAY[3]}
+		K=4;
+		while [ $K -lt ${#TIME_ARRAY[*]} ]; do
+			END_TIME="$END_TIME ${TIME_ARRAY[$K]}"
+			K=`expr $K + 1`
+		done
+
+		echo "TIME[$J]: ${TIME[$J]}"	
+		echo "R1: $R1"
+		echo "R2: $R2"
+		echo "TIME_LENGTH: $TIME_LENGTH"
+		echo "END_TIME: $END_TIME"
+
+		COMMAND="${GRAPH_SCRIPT}"
+		if [ ${MAXLINE} == "n" ]; then
+			COMMAND="${COMMAND}_nomax"
+		elif [ ${MAXLINE} == "a" -a ${R2} -gt 1800 ]; then
+			COMMAND="${COMMAND}_nomax"
+		fi
+		COMMAND="${COMMAND}.sh"
+
+		COMMAND="$COMMAND \"${PREFIX_IN[$I]}\" \"${PREFIX_OUT[$I]}\""
+
+		COMMAND="$COMMAND ${GRAPH_DIR}/${SESSION}/graph_${LABEL[$I]}_${GRAPH_TYPE}_${R1}s_${R2}s_${TIME_LENGTH}.png end-${TIME_LENGTH} \"${END_TIME}\" ${R1} ${R2}"
+		if [ -n "${DESCRIPTION_IN[$I]}" ]; then
+			COMMAND="$COMMAND \"${DESCRIPTION_IN[$I]}\""
+		else
+			COMMAND="$COMMAND \"${DESCRIPTION_OUT[$I]}\""
+		fi
+
+		echo "COMMAND: $COMMAND"
+
+		###################################
+		### Finally, generate one graph ###
+		###################################
+
+		eval $COMMAND
+
+	done
+	# Go to next --time
+
+done
+# Go to next or --label

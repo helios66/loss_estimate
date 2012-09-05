@@ -1,0 +1,154 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+
+
+
+CFLAGS = -Wall -g
+
+ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -O0
+else
+	CFLAGS += -O2
+endif
+
+features :=
+features += --enable-dag
+features += --enable-napatech
+features += --enable-trackflib
+features += --enable-anonflib
+features += --enable-ipfixflib
+features += --enable-extraflib
+features += --disable-appmon
+
+features += --disable-dimapi
+features += --disable-ssl
+features += --disable-authentication
+features += --disable-reconnect
+features += --disable-locking
+features += --disable-funcstats
+features += --disable-enp2611
+
+confflags := 	--prefix=/usr \
+		--mandir=\$${prefix}/share/man \
+		--sysconfdir=/etc \
+		$(features)
+ifeq ($(DEB_BUILD_GNU_TYPE), $(DEB_HOST_GNU_TYPE))
+	confflags += --build $(DEB_HOST_GNU_TYPE)
+else
+	confflags += --build $(DEB_BUILD_GNU_TYPE) --host $(DEB_HOST_GNU_TYPE)
+endif
+
+
+configure: configure-stamp
+configure-stamp:
+	dh_testdir
+	# Add here commands to configure the package.
+	./configure  $(confflags)
+	touch configure-stamp
+
+
+build: build-stamp
+
+build-stamp: configure-stamp 
+	dh_testdir
+
+	# Add here commands to compile the package.
+	$(MAKE)
+	#docbook-to-man debian/mapi.sgml > mapi.1
+
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp configure-stamp
+
+	# Add here commands to clean up after the build process.
+	-$(MAKE) clean
+
+	dh_clean 
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k 
+	dh_installdirs
+
+	# Add here commands to install the package into debian/mapi.
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/mapi
+	rm -f debian/mapi/etc/mapi/mapicommd_key.pem
+	rm -f debian/mapi/etc/mapi/mapicommd_cert.pem
+	mv  debian/mapi/usr/share/mapi/dagflib.so.0.0.0 debian/mapi-dag/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/dagflib.so.0 debian/mapi-dag/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/dagflib.so debian/mapi-dag/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/dagflib.la debian/mapi-dag/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapidagdrv.so.0.0.0 debian/mapi-dag/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapidagdrv.so.0 debian/mapi-dag/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapidagdrv.so debian/mapi-dag/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapidagdrv.la debian/mapi-dag/usr/share/mapi
+
+	mv  debian/mapi/usr/share/mapi/napatechflib.so.0.0.0 debian/mapi-napatech/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/napatechflib.so.0 debian/mapi-napatech/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/napatechflib.so debian/mapi-napatech/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/napatechflib.la debian/mapi-napatech/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapinapatechdrv.so.0.0.0 debian/mapi-napatech/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapinapatechdrv.so.0 debian/mapi-napatech/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapinapatechdrv.so debian/mapi-napatech/usr/share/mapi
+	mv  debian/mapi/usr/share/mapi/mapinapatechdrv.la debian/mapi-napatech/usr/share/mapi
+
+	perl $(CURDIR)/debian/dedagify.pl debian/mapi/etc/mapi/mapi.conf \
+	    config/mapi.conf.dag.entry \
+            > debian/mapi/usr/share/doc/mapi/examples/mapi.conf.nodag
+	mv debian/mapi/etc/mapi/mapi.conf \
+		debian/mapi/usr/share/doc/mapi/examples/mapi.conf.dag
+	mv  debian/mapi/usr/sbin/dag_ipf_loader.sh.example \
+		debian/mapi-dag/usr/sbin/dag_ipf_loader.sh.example
+
+
+# Build architecture-independent files here.
+binary-indep: build install
+# We have nothing to do by default.
+
+# Build architecture-dependent files here.
+binary-arch: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs 
+	dh_installdocs
+	dh_installexamples
+#	dh_install
+#	dh_installmenu
+#	dh_installdebconf	
+#	dh_installlogrotate
+#	dh_installemacsen
+#	dh_installpam
+#	dh_installmime
+	dh_installinit -pmapi -u"defaults 21 79"
+	dh_installinit -pappmon -u"defaults 22 78"
+#	dh_installcron
+#	dh_installinfo
+	dh_installman
+	dh_link
+	dh_strip --keep-debug
+	dh_compress -XCOPYING
+	dh_fixperms
+#	dh_perl
+#	dh_python
+	dh_makeshlibs
+	dh_installdeb
+	dh_shlibdeps
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure

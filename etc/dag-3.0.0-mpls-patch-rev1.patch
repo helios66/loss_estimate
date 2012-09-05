@@ -1,0 +1,570 @@
+diff -U5 -x Makefile -r dag-3.0.0-orig/include/dagdsm/dsm_types.h dag-3.0.0/include/dagdsm/dsm_types.h
+--- dag-3.0.0-orig/include/dagdsm/dsm_types.h	2006-09-05 01:10:18.000000000 +0200
++++ dag-3.0.0/include/dagdsm/dsm_types.h	2007-09-15 16:58:22.000000000 +0200
+@@ -136,10 +136,11 @@
+ typedef enum 
+ {
+ 	kEthernet = 1,
+ 	kPoS = 2,
+ 	kEthernetVlan = 3,
++	kEthernetMpls = 4,	/* VM patch added line */
+ 	
+ } layer2_type_t;
+ 
+ 
+ typedef enum 
+@@ -184,10 +185,14 @@
+ 
+ 	/* layer 2 fields (Ethernet/PoS) */
+ 	union {
+ 
+ 		struct {		
++			struct {	/* VM patch added struct */
++				uint32_t    label;
++				uint32_t    mask;
++			} mpls_label;
+ 			struct {
+ 				uint16_t    id;
+ 				uint16_t    mask;
+ 			} vlan_id;
+ 			struct {
+diff -U5 -x Makefile -r dag-3.0.0-orig/include/dagdsm.h dag-3.0.0/include/dagdsm.h
+--- dag-3.0.0-orig/include/dagdsm.h	2006-12-06 22:47:44.000000000 +0100
++++ dag-3.0.0/include/dagdsm.h	2007-09-15 16:45:32.000000000 +0200
+@@ -269,10 +269,14 @@
+ 	
+ 	/* enables the VLAN option on the filter */
+ 	int
+ 	dagdsm_filter_enable_vlan (DsmFilterH filter_h, uint32_t enable);
+ 	
++	/* enables the MPLS option on the filter, VM patch added */
++	int
++	dagdsm_filter_enable_mpls (DsmFilterH filter_h, uint32_t enable);
++	
+ 	/* sets the VLAN ID to filter on, the card must be ethernet and have VLAN enabled */
+ 	int
+ 	dagdsm_filter_set_vlan_id (DsmFilterH filter_h, uint16_t id, uint16_t mask);
+ 	
+     /* gets the VLAN ID to filter on, the card must be ethernet and have VLAN enabled */
+diff -U5 -x Makefile -r dag-3.0.0-orig/lib/dagdsm/dsm_config.c dag-3.0.0/lib/dagdsm/dsm_config.c
+--- dag-3.0.0-orig/lib/dagdsm/dsm_config.c	2006-09-07 05:45:32.000000000 +0200
++++ dag-3.0.0/lib/dagdsm/dsm_config.c	2007-09-15 17:02:16.000000000 +0200
+@@ -375,11 +375,13 @@
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+ 	
+-	if ( (config_p->filters[0].layer2_type == kEthernet) || (config_p->filters[0].layer2_type == kEthernetVlan) )
++	if ( (config_p->filters[0].layer2_type == kEthernet)
++	  || (config_p->filters[0].layer2_type == kEthernetVlan)
++	  || (config_p->filters[0].layer2_type == kEthernetMpls) )	/* VM patch added Mpls */
+ 		return 1;
+ 	else
+ 		return 0;
+ }
+ 
+diff -U5 -x Makefile -r dag-3.0.0-orig/lib/dagdsm/dsm_filter.c dag-3.0.0/lib/dagdsm/dsm_filter.c
+--- dag-3.0.0-orig/lib/dagdsm/dsm_filter.c	2006-09-19 09:14:29.000000000 +0200
++++ dag-3.0.0/lib/dagdsm/dsm_filter.c	2007-09-15 19:04:42.000000000 +0200
+@@ -239,12 +239,13 @@
+ 	filter_p->layer3_type = kIPv4;
+ 	
+ 	filter_p->term_depth  = LAST_FILTER_ELEMENT;
+ 
+ 	
+-	/* disable VLAN if set */
+-	if ( filter_p->layer2_type == kEthernetVlan )
++	/* disable VLAN or MPLS if set */
++	if ( filter_p->layer2_type == kEthernetVlan 
++	  || filter_p->layer2_type == kEthernetMpls )	/* VM patch added mpls */
+ 		filter_p->layer2_type = kEthernet;
+ 	
+ 	
+ 	/* protocol settings */
+ 	memset (&(filter_p->layer2), 0, sizeof(filter_p->layer2));
+@@ -1812,11 +1813,13 @@
+ 	if ( src == NULL || mask == NULL )
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+-	if ( (filter_p->layer2_type != kEthernet) && (filter_p->layer2_type != kEthernetVlan) )
++	if ( (filter_p->layer2_type != kEthernet)
++	  && (filter_p->layer2_type != kEthernetVlan)
++	  && (filter_p->layer2_type != kEthernetMpls) )	/* VM patch added mpls */
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+ 	
+@@ -1870,11 +1873,13 @@
+ 	if ( src == NULL || mask == NULL )
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+-	if ( (filter_p->layer2_type != kEthernet) && (filter_p->layer2_type != kEthernetVlan) )
++	if ( (filter_p->layer2_type != kEthernet) 
++	  && (filter_p->layer2_type != kEthernetVlan)
++	  && (filter_p->layer2_type != kEthernetMpls) )	/* VM patch added mpls */
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+ 		
+@@ -1928,11 +1933,13 @@
+ 	if ( dst == NULL || mask == NULL )
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+-	if ( (filter_p->layer2_type != kEthernet) && (filter_p->layer2_type != kEthernetVlan) )
++	if ( (filter_p->layer2_type != kEthernet) 
++	  && (filter_p->layer2_type != kEthernetVlan)
++	  && (filter_p->layer2_type != kEthernetMpls) ) /* VM patch added mpls */
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+ 	
+@@ -1984,11 +1991,13 @@
+ 	if ( dst == NULL || mask == NULL )
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+-	if ( (filter_p->layer2_type != kEthernet) && (filter_p->layer2_type != kEthernetVlan) )
++	if ( (filter_p->layer2_type != kEthernet) 
++	  && (filter_p->layer2_type != kEthernetVlan)
++	  && (filter_p->layer2_type != kEthernetMpls) )	/* VM patch added mpls */
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+ 	
+@@ -2035,11 +2044,13 @@
+ 	if ( (filter_p == NULL) || (filter_p->signature != DSM_SIG_FILTER) )
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+-	if ( (filter_p->layer2_type != kEthernet) && (filter_p->layer2_type != kEthernetVlan) )
++	if ( (filter_p->layer2_type != kEthernet)
++	  && (filter_p->layer2_type != kEthernetVlan)
++	  && (filter_p->layer2_type != kEthernetMpls) )	/* VM patch added mpls */
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}	
+ 
+@@ -2081,11 +2092,13 @@
+ 	if ( (filter_p == NULL) || (filter_p->signature != DSM_SIG_FILTER) )
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}
+-	if ( (filter_p->layer2_type != kEthernet) && (filter_p->layer2_type != kEthernetVlan) )
++	if ( (filter_p->layer2_type != kEthernet) 
++	  && (filter_p->layer2_type != kEthernetVlan)
++	  && (filter_p->layer2_type != kEthernetMpls) )	/* VM patch added mpls */
+ 	{
+ 		dagdsm_set_last_error (EINVAL);
+ 		return -1;
+ 	}	
+ 
+@@ -2143,10 +2156,60 @@
+ 	
+ 	return 0;
+ }
+ 
+ 
++/*--------------------------------------------------------------------
++ 
++ FUNCTION:      dagdsm_filter_enable_mpls
++ 
++ DESCRIPTION:   Enables/disables MPLS support for the filter, if enabled
++                the filter expects the ethertype to be MPLS (0x8847) and
++                adjust the rest of the fields (including the ethertype
++                field) down by four bytes.
++ PARAMETERS:    filter_h        IN      Handle to the filter
++                enable          IN      A non-zero value enables the
++                                        MPLS support, zero disables MPLS
++                                        support.
++
++ RETURNS:       0 if the filter was changed otherwise -1, this function
++                updates the last error code using dagdsm_set_last_error()
++
++ HISTORY:       VM patch added function
++
++---------------------------------------------------------------------*/
++int
++dagdsm_filter_enable_mpls (DsmFilterH filter_h, uint32_t enable)
++{
++	dsm_filter_t * filter_p = (dsm_filter_t*) filter_h;
++	
++	/* sanity checking */
++	dagdsm_set_last_error (0);
++	if ( (filter_p == NULL) || (filter_p->signature != DSM_SIG_FILTER) )
++	{
++		dagdsm_set_last_error (EINVAL);
++		return -1;
++	}
++
++	/* check to make sure MPLS is supported */
++	if ( (filter_p->layer2_type != kEthernet) && (filter_p->layer2_type != kEthernetMpls) )
++	{
++		dagdsm_set_last_error (EINVAL);
++		return -1;
++	}
++		
++	
++	if ( enable == 0 )
++		filter_p->layer2_type = kEthernet;
++	else
++		filter_p->layer2_type = kEthernetMpls;
++	
++	
++	return 0;
++}
++
++
+ 
+ /*--------------------------------------------------------------------
+  
+  FUNCTION:      dagdsm_filter_set_vlan_id
+  
+@@ -2192,10 +2255,57 @@
+ 	return 0;
+ }
+ 
+ /*--------------------------------------------------------------------
+  
++ FUNCTION:      dagdsm_filter_set_mpls_label
++ 
++ DESCRIPTION:   Sets the MPLS label to filter on, this option is only
++                available if the MPLS support has been enabled.
++ 
++ PARAMETERS:    filter_h        IN      Handle to the filter
++                label           IN      Value to filter on, only the lower
++                                        20-bits are used.
++                mask            IN      Mask value, only the lower 20-bits
++                                        used.
++
++ RETURNS:       0 if the filter was changed otherwise -1, this function
++                updates the last error code using dagdsm_set_last_error()
++
++ HISTORY:       VM patch added function
++
++---------------------------------------------------------------------*/
++int
++dagdsm_filter_set_mpls_label (DsmFilterH filter_h, uint32_t label, uint32_t mask)
++{
++	dsm_filter_t * filter_p = (dsm_filter_t*) filter_h;
++	
++	/* sanity checking */
++	dagdsm_set_last_error (0);
++	if ( (filter_p == NULL) || (filter_p->signature != DSM_SIG_FILTER) )
++	{
++		dagdsm_set_last_error (EINVAL);
++		return -1;
++	}
++
++	/* check to make sure MPLS is supported */
++	if ( filter_p->layer2_type != kEthernetMpls )
++	{
++		dagdsm_set_last_error (EINVAL);
++		return -1;
++	}
++	
++	
++	/* label is shifted 12 bits on the wire */
++	filter_p->layer2.ethernet.mpls_label.label = ((label << 12) & 0xFFFFF000);
++	filter_p->layer2.ethernet.mpls_label.mask  = ((mask  << 12) & 0xFFFFF000);
++	
++	return 0;
++}
++
++/*--------------------------------------------------------------------
++ 
+  FUNCTION:      dagdsm_filter_get_vlan_id
+  
+  DESCRIPTION:   Gets the VLAN id for the filter, this option is only available
+                 if the VLAN support has been enabled.
+  
+@@ -2235,11 +2345,13 @@
+ 	*mask = (filter_p->layer2.ethernet.vlan_id.mask  & 0xFFF);
+ 	
+ 	return 0;
+ }
+ 
+-
++/* VM patch: function dagdsm_filter_get_mpls_label() should be defined
++ * here, but was not needed for dsm_loader MPLS extension.
++ */
+ 
+ 
+ /*--------------------------------------------------------------------
+  
+  FUNCTION:      dagdsm_filter_copy
+@@ -2279,11 +2391,13 @@
+ 	/* check to make sure the two filters are the same network type */
+ 	switch (dst_filter_p->layer2_type)
+ 	{
+ 		case kEthernet:
+ 		case kEthernetVlan:
+-			if ( (src_filter_p->layer2_type != kEthernet) && (src_filter_p->layer2_type != kEthernetVlan) )
++			if ( (src_filter_p->layer2_type != kEthernet)
++			  && (src_filter_p->layer2_type != kEthernetVlan) 
++			  && (src_filter_p->layer2_type != kEthernetMpls) )	/* VM patch added mpls */
+ 			{
+ 				dagdsm_set_last_error (EINVAL);
+ 				return -1;
+ 			}
+ 			break;
+diff -U5 -x Makefile -r dag-3.0.0-orig/lib/dagdsm/dsm_load.c dag-3.0.0/lib/dagdsm/dsm_load.c
+--- dag-3.0.0-orig/lib/dagdsm/dsm_load.c	2006-09-05 01:15:05.000000000 +0200
++++ dag-3.0.0/lib/dagdsm/dsm_load.c	2007-09-15 19:05:32.000000000 +0200
+@@ -293,10 +293,11 @@
+ 	/* calculate the layer 3 offset from the start of the filter */
+ 	switch ( filter_p->layer2_type )
+ 	{
+ 		case kEthernet:     layer3_offset = 16;     break;
+ 		case kPoS:          layer3_offset = 4;      break;
++		case kEthernetMpls:					/* VM patch added case */
+ 		case kEthernetVlan: layer3_offset = 20;     break;
+ 		default:            assert(0);              return;		
+ 	}		
+ 	
+ 
+@@ -355,10 +356,39 @@
+ 			dsm_update_filter_byte (value, filter_p->layer2.ethernet.src_mac.mac[i],  8 + i, DSM_SET);
+ 			dsm_update_filter_byte (mask,  filter_p->layer2.ethernet.src_mac.mask[i], 8 + i, DSM_SET);
+ 		}
+ 	}
+ 	
++	/* if MPLS we should set the MPLS ethertype and move the user supplied ethertype into the MPLS header */
++	else if ( filter_p->layer2_type == kEthernetMpls )	/* VM patch added if */
++	{
++		dsm_update_filter_byte (value, 0x88, 14, DSM_SET);
++		dsm_update_filter_byte (value, 0x47, 15, DSM_SET);
++		dsm_update_filter_byte (mask,  0xFF, 14, DSM_SET);
++		dsm_update_filter_byte (mask,  0xFF, 15, DSM_SET);
++		
++		dsm_update_filter_byte (value, (uint8_t) ((filter_p->layer2.ethernet.mpls_label.label >> 24) & 0xFF), 16, DSM_SET);
++		dsm_update_filter_byte (value, (uint8_t) ((filter_p->layer2.ethernet.mpls_label.label >> 16) & 0xFF), 17, DSM_SET);
++		dsm_update_filter_byte (value, (uint8_t) ((filter_p->layer2.ethernet.mpls_label.label >>  8) & 0xF0), 18, DSM_SET);
++		dsm_update_filter_byte (mask,  (uint8_t) ((filter_p->layer2.ethernet.mpls_label.mask  >> 24) & 0xFF), 16, DSM_SET);
++		dsm_update_filter_byte (mask,  (uint8_t) ((filter_p->layer2.ethernet.mpls_label.mask  >> 16) & 0xFF), 17, DSM_SET);
++		dsm_update_filter_byte (mask,  (uint8_t) ((filter_p->layer2.ethernet.mpls_label.mask  >>  8) & 0xF0), 18, DSM_SET);
++
++		dsm_update_filter_byte (value, (uint8_t) ((filter_p->layer2.ethernet.ethertype.type >> 8) & 0x00FF), 19, DSM_SET);
++		dsm_update_filter_byte (value, (uint8_t) ((filter_p->layer2.ethernet.ethertype.type     ) & 0x00FF), 20, DSM_SET);
++		dsm_update_filter_byte (mask,  (uint8_t) ((filter_p->layer2.ethernet.ethertype.mask >> 8) & 0x00FF), 19, DSM_SET);
++		dsm_update_filter_byte (mask,  (uint8_t) ((filter_p->layer2.ethernet.ethertype.mask     ) & 0x00FF), 20, DSM_SET);
++		
++		for (i=0; i<6; i++)
++		{
++			dsm_update_filter_byte (value, filter_p->layer2.ethernet.dst_mac.mac[i],  2 + i, DSM_SET);
++			dsm_update_filter_byte (mask,  filter_p->layer2.ethernet.dst_mac.mask[i], 2 + i, DSM_SET);
++			
++			dsm_update_filter_byte (value, filter_p->layer2.ethernet.src_mac.mac[i],  8 + i, DSM_SET);
++			dsm_update_filter_byte (mask,  filter_p->layer2.ethernet.src_mac.mask[i], 8 + i, DSM_SET);
++		}
++	}
+ 
+ 
+ 	
+ 	/* check if ipv4 and if so add lower level details */
+ 	if ( filter_p->layer3_type == kIPv4 )
+diff -U5 -x Makefile -r dag-3.0.0-orig/lib/dag_protocol_decode.c dag-3.0.0/lib/dag_protocol_decode.c
+--- dag-3.0.0-orig/lib/dag_protocol_decode.c	2006-08-31 01:28:27.000000000 +0200
++++ dag-3.0.0/lib/dag_protocol_decode.c	2007-09-15 19:00:02.000000000 +0200
+@@ -454,10 +454,15 @@
+ 			pload = (uint8_t*) &payload[2];
+ 		}
+ 		
+ 		return 18;
+ 	}
++	
++	/* VM patch should be added here if ethertype == 0x8847 (MPLS),
++	 * but was not needed for dsm_loader MPLS extension.
++	 */
++
+ 	else if (ethertype >= 0x600)
+ 	{
+ 		/* Non-VLAN Type-encoded ethernet. */
+ 		printf("eth: etype=0x%04x\n", ethertype);
+ 	}
+diff -U5 -x Makefile -r dag-3.0.0-orig/tools/dagbits.c dag-3.0.0/tools/dagbits.c
+--- dag-3.0.0-orig/tools/dagbits.c	2007-02-28 07:12:03.000000000 +0100
++++ dag-3.0.0/tools/dagbits.c	2007-09-15 19:00:01.000000000 +0200
+@@ -2538,10 +2538,15 @@
+ 						/* Non-VLAN Length-encoded ethernet. */
+ 						printf("length=0x%04x\n", length_type);
+ 						pload = (uint8_t*) &overlay16[2];
+ 					}
+ 				}
++
++				/* VM patch should be added here: if ethertype == 0x8847 (MPLS),
++				 * but was not needed for dsm_loader MPLS extension.
++				 */
++
+ 				else if (ethertype >= 0x600)
+ 				{
+ 					/* Non-VLAN Type-encoded ethernet. */
+ 					printf("etype=0x%04x\n", ethertype);
+ 					pload = drec->rec.eth.pload;
+diff -U5 -x Makefile -r dag-3.0.0-orig/tools/dsm_loader.c dag-3.0.0/tools/dsm_loader.c
+--- dag-3.0.0-orig/tools/dsm_loader.c	2006-10-13 02:27:43.000000000 +0200
++++ dag-3.0.0/tools/dsm_loader.c	2007-09-15 18:27:16.000000000 +0200
+@@ -92,19 +92,21 @@
+ #define XMLHASH_PORT              457
+ #define XMLHASH_TCPFLAGS          906
+ #define XMLHASH_FLAGS             530
+ #define XMLHASH_ETHERNET          871
+ #define XMLHASH_ETHERNET_VLAN     1354
++#define XMLHASH_ETHERNET_MPLS     1365		/* VM patch added line */
+ #define XMLHASH_ETHERTYPE         995
+ #define XMLHASH_MACSOURCE         1017
+ #define XMLHASH_MACDEST           790
+ #define XMLHASH_ICMP              429
+ #define XMLHASH_ICMPCODE          890
+ #define XMLHASH_CODE              415
+ #define XMLHASH_ICMPTYPE          929
+ #define XMLHASH_TYPE              454
+ #define XMLHASH_VLANID            690
++#define XMLHASH_MPLSLABEL        1011		/* VM patch added line */
+ 
+ #define XMLHASH_NAME              421
+ #define XMLHASH_NUMBER            655
+ #define XMLHASH_ALGORITHM         976
+ #define XMLHASH_PARTIAL_COMPONENT 1790
+@@ -1237,10 +1239,89 @@
+ 	/* set the vlan id */
+ 	dagdsm_filter_set_vlan_id (filter_h, id, mask);
+ }
+ 
+ 
++/**						VM patch added function
++ Processes a <mpls-label> element.
++ 
++ @param doc Pointer to the parsed XML configuration file.
++ @param cur_node Pointer to the <mpls-label> element (node)
++ @param filter_h Handle to the filter that is being updated.
++*/
++static void
++process_mpls_label (xmlDocPtr doc, xmlNodePtr cur_node, DsmFilterH filter_h)
++{
++	xmlNodePtr child_node;
++	xmlChar *  attr;
++	uint32_t   label;
++	uint32_t   mask;
++	char       fmt_str[32];
++	int        res;
++	xmlChar *  key;
++	
++	
++	/* initialise */
++	label = 0;
++	mask = 0x000FFFFF;
++	
++	
++	/* loop through the child elements, which should only be <label> or <mask> */
++	for (child_node = cur_node->children; child_node; child_node = child_node->next)
++	{
++		if (child_node->type != XML_ELEMENT_NODE)
++			continue;
++
++		
++		/* get the elements TEXT */
++		key = xmlNodeListGetString(doc, child_node->xmlChildrenNode, 1);
++		if ( key == NULL )
++			continue;
++		
++		
++		/* get the 'hex' attribute value */
++		attr = xmlGetProp (child_node, BAD_CAST"hex");
++		if ( attr == NULL || xmlStrEqual(attr, BAD_CAST"false") )
++			strcpy (fmt_str, "%d");
++		else
++			strcpy (fmt_str, "%X");
++
++		if (attr)
++			xmlFree (attr);
++
++		
++		/* parse the address */
++		if ( xmlStrEqual(child_node->name, BAD_CAST"label") )
++			res = sscanf ((char*)key, fmt_str, &label);
++		
++		else if ( xmlStrEqual(child_node->name, BAD_CAST"mask") )
++			res = sscanf ((char*)key, fmt_str, &mask);
++
++		else
++		{
++			xmlFree(key);
++			xml_warning (EUNKNOWNELEM, child_node);
++			continue;
++		}
++		
++	
++		/* check the label or mask was parsed correctly */
++		if ( res != 1 )
++		{
++			dagutil_warning ("failed to parse the mask or label of the mpls-label element on line %d.\n", cur_node->line);
++			return;
++		}
++
++		xmlFree(key);
++	}
++	
++	
++	/* set the mpls label */
++	dagdsm_filter_set_mpls_label (filter_h, label, mask);
++}
++
++
+ /**
+  Processes an <ethernet> element.
+  
+  @param doc Pointer to the parsed XML configuration file.
+  @param cur_node Pointer to the <ethernet> element (node).
+@@ -1278,11 +1359,15 @@
+ 				break;
+ 			
+ 			case XMLHASH_VLANID:
+ 				process_vlan_id (doc, child_node, filter_h);
+ 				break;
+-			
++
++			case XMLHASH_MPLSLABEL:		/* VM patch added case */
++				process_mpls_label (doc, child_node, filter_h);
++				break;
++
+ 			case XMLHASH_IPV4:
+ 				process_ipv4_node (doc, child_node, filter_h);
+ 				break;
+ 
+ 			default:
+@@ -1612,14 +1697,20 @@
+ 			case XMLHASH_RAW:
+ 				dagdsm_filter_set_raw_mode (filter_h, 1);
+ 				process_raw_filter (doc, child_node, filter_h);
+ 				break;
+ 				
++			case XMLHASH_ETHERNET_MPLS:		/* VM patch added case */
++				dagdsm_filter_set_raw_mode (filter_h, 0);
++				dagdsm_filter_enable_mpls (filter_h, 1);
++				goto ethernet_elem;
++
+ 			case XMLHASH_ETHERNET_VLAN:
+ 				dagdsm_filter_set_raw_mode (filter_h, 0);
+ 				dagdsm_filter_enable_vlan (filter_h, 1);
+ 			case XMLHASH_ETHERNET:
++ethernet_elem:
+ 				if ( dagdsm_is_ethernet(config_h) != 1 )
+ 					dagutil_warning ("current card configuration doesn't support ethernet frames, etherent specific elements will be ignored.\n");
+ 				dagdsm_filter_set_raw_mode (filter_h, 0);
+ 				process_ethernet_filter (doc, child_node, filter_h);
+ 				break;

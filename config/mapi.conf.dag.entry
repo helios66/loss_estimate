@@ -1,0 +1,13 @@
+[driver]
+device=/dev/dag0
+driver=mapidagdrv.so
+description=DAG capture card
+
+[format]
+format=MFF_DAG_ERF
+driver=mapidagdrv.so
+description=Offline dag-capture
+
+[dag]
+dsm_loader_bin=/path/to/dsm_loader
+disable_dsm_xml_remove=0

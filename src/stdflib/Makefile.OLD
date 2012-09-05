@@ -1,0 +1,107 @@
+include ../Makefile.in
+
+INCLUDE=-I. -I..
+
+CFLAGS=-g -O2 $(C_WARNINGS) $(C_FEATURES) -DDEBUG=$(DEBUG) $(INCLUDE) \
+ -DWITH_FUNCT_STATS -DWITH_MODIFY_PKTS
+
+TARGETS=mapidstdflib.so
+
+BPF=
+ifeq ($(WITH_OPTIMIZED_BPF_FILTER),1)
+	BPF=obpffilter.c
+else
+	BPF=bpffilter.c
+endif
+
+all: $(TARGETS)
+
+mapidstdflib.o: mapidstdflib.c ../mapidflib.h ../mapi.h
+	$(CC) $(CFLAGS) -c $<
+
+mapidstdflib.so: mapidstdflib.o pktcounter.o bytecounter.o strsearch.o bpffilter.o cooking.o regexp.o top.o ../fhelp.o ../mapiipc.o ../mstring.o ../list.o tobuffer_all.o to_tcpdump.o sample.o startstop.o hash.o gap.o pktinfo.o res2file.o stats.o binop.o dist.o ../fifo.o ../cbuf.o ../flist.o hashsamp.o threshold.o bucket.o bpf_lib.a libnids.a 
+	$(CC) $(CFLAGS) -shared  -o $@ $^ -lfl -lrt -L.. -L. $(LIB_DIR) -lm -lnet -lpcap -lpcre
+	cp $@ ..
+
+pktcounter.o: pktcounter.c
+	$(CC) $(CFLAGS) -c $<
+
+tobuffer_all.o: tobuffer_all.c
+	$(CC) $(CFLAGS) -c $<
+
+bytecounter.o: bytecounter.c
+	$(CC) $(CFLAGS) -c $<
+
+strsearch.o: strsearch.c 
+	$(CC) $(CFLAGS) -c $<
+
+bpffilter.o: $(BPF) bpf_lib.a
+	$(CC) $(CFLAGS) -o bpffilter.o -c $<
+
+cooking.o: cooking.c cooking.h
+	$(CC) $(CFLAGS) -c $<
+
+regexp.o: regexp.c
+	$(CC) $(CFLAGS) -c $<
+
+top.o: top.c topx.h
+	$(CC) $(CFLAGS) -c $<
+
+to_tcpdump.o: to_tcpdump.c 
+	$(CC) $(CFLAGS) -c $<
+
+sample.o: sample.c sample.h
+	$(CC) $(CFLAGS) -c $<
+
+hash.o: hash.c 
+	$(CC) $(CFLAGS) -c $<
+
+binop.o: binop.c 
+	$(CC) $(CFLAGS) -c $<
+
+startstop.o: startstop.c 
+	$(CC) $(CFLAGS) -c $<
+
+gap.o: gap.c 
+	$(CC) $(CFLAGS) -c $<
+
+pktinfo.o: pktinfo.c 
+	$(CC) $(CFLAGS) -c $<
+
+res2file.o: res2file.c 
+	$(CC) $(CFLAGS) -c $<
+
+stats.o: stats.c 
+	$(CC) $(CFLAGS) -c $<
+
+dist.o: dist.c 
+	$(CC) $(CFLAGS) -c $<
+
+hashsamp.o: hashsamp.c 
+	$(CC) $(CFLAGS) -c $<
+
+threshold.o: threshold.c 
+	$(CC) $(CFLAGS) -c $<
+
+bucket.o: bucket.c 
+	$(CC) $(CFLAGS) -c $<
+
+bpf_lib.a: bpf/*
+	cd bpf && make
+	cp bpf/bpf_lib.a .
+
+libnids.a: libnids/*
+	cd libnids && make
+	cp libnids/libnids.a .	
+
+clean:
+	@/bin/rm -f *.o *.so *.a *~ $(TARGETS)
+	cd bpf && make clean
+	cd libnids && make clean
+
+install: all
+	../$(MKINSTALLDIRS) $(INSTALL_INCDIR)/stdlib
+	$(INSTALL) dist.h     $(INSTALL_INCDIR)/stdlib
+	$(INSTALL) pktinfo.h  $(INSTALL_INCDIR)/stdlib
+	$(INSTALL) res2file.h $(INSTALL_INCDIR)/stdlib
+	$(INSTALL) sample.h   $(INSTALL_INCDIR)/stdlib

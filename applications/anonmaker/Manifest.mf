@@ -1,0 +1,3 @@
+Mainifest-Version: 1.0
+Created-By: Antonatos
+Main-Class: AnonymizePolicyGUI

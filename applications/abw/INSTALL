@@ -1,0 +1,270 @@
+I. PREREQUISITIES
+
+  The following standard packages are needed:
+
+  libtool        (needed by autoconf)
+  readline-dev
+  rrdtool >= 1.2.15
+  libart-2.0     (needed by rrdtool)
+  libart-2.0-dev (needed by rrdtool)
+  libpcre3
+  libpcre3-dev
+  libpcap
+  libnids >=1.21 (only if --enable-extraflib is used, make sure that
+                  libnids installs also a dynamic library)
+
+  Install these packages using package management in your distribution 
+  of Linux (e.g., yast in SuSe or dselect in Debian) or from sources.
+
+  Note 1: Graphs are not produced correctly with rrdtool 1.2.11, which
+          includes a bug in time resolution processing. 
+
+  Note 2: If you want to monitor MPLS links and classify packets based on
+          L3 or L4 headers, which are after MPLS headers, you need the 
+          latest libpcap from CVS, because support for IP filtering of
+          MPLS packets is not yet include in libpcap distributed in packages 
+          or as a tarball. See http://www.tcpdump.org how to checkout libpcap 
+          sources from CVS and compile them.
+
+II. GET DiMAPI AND BUNDLED APPLICATIONS
+
+  DiMAPI and bundled applications are available from SVN server:
+
+  svn checkout https://svn.testnett.uninett.no/mapi/trunk
+
+III. INSTALL DiMAPI
+
+  Do this on all remote monitoring stations and on the central station
+  (if you use the central station).
+
+  These instructions are also included in README file of DiMAPI sources.
+
+  1) cd trunk
+  
+  2) ./bootstrap.sh
+  
+  3) ./configure --prefix=/usr/local/mapi --enable-trackflib \
+        [ --enable-dimapi ] \
+        [ --with-libpcap=/usr/local/src/libpcap ] \
+        [ --enable-dag --with-libdag=/usr/local/dag ]
+        [ --enable-anonflib --enable-ipfixflib --enable-extraflib ] \
+
+     It is recommended that you use all the options in the above example.
+
+     Use --enable-dimapi if you want to gather results from remote monitoring 
+     stations on a central station.
+
+     Use --with-libpcap if you want to use some specific libpcap, such as the 
+     latest sources from CVS in order to monitor MPLS links.
+
+     Use --enable-dag and --with-libdag if you want to read packets from a DAG 
+     card. You need DAG software installed before running the configure command.
+
+     Features enabled by --enable-anonlib, --enable-ipfixlib and 
+     --enable-extraflib are currently not used by ABW but you can include them 
+     in your installation of MAPI for future use.
+
+  4) make
+  
+  5) make install
+  
+  6) vi MAPI_DIR/etc/mapi.conf       
+  
+     MAPI_DIR is equal to the value of "--prefix" when configuring MAPI 
+     installation directory. Add monitoring interfaces, such as eth1, 
+     /dev/dag0, etc., for example:
+
+     [driver]
+     device=eth1
+     driver=mapinicdrv.so
+     mpls=0
+     vlan=0
+
+     Specify mpls=1 if packets received on this monitoring interface have 
+     MPLS headers. Default is mpls=0 and can be omitted. Note that packets 
+     may have MPLS headers in one direction of a link, but not have MPLS
+     headers in the other direction of the same link.
+
+     Specify vlan=1 if packets received on this monitoring interface have
+     802.1Q headers. Default is vlan=0 and can be omitted.
+
+  7) vi /etc/ld.so.conf                     
+  
+     add MAPI_DIR/lib and MAPI_DIR/share/mapi
+          
+  8) ldconfig
+
+IV. INSTALL ABW
+
+  Do this on all remote monitoring stations and on the central station
+  (if you use the central station).
+
+  1) cd trunk/applications/abw
+ 
+  2) ./bootstrap.sh
+
+  3) ./configure [ --prefix=/usr/local/abw ] \
+                 [ --localstatedir=/var/lib/abw ] \
+                 [ --with-mapi=/usr/local/mapi ] \
+                 [ --with-libdag=/usr/local/dag ] \
+                 [ --with-user=abw ] \
+                 [ --with-group=abw ]
+  
+     You can use --prefix=DIR to specify installation directory,
+     default is /usr/local/abw.
+
+     You can use --localstatedir=DIR to specify directory for ABW data,
+     such as RRD files, log files and graphs, default is /var/lib/abw.
+          
+     You can use --with-mapi=DIR to specify where MAPI has been installed,
+     default is /usr/local/mapi.
+
+     You can use --with-libdag=DIR to specify where DAG software has been
+     installed, default is /usr/local/dag.
+
+     You can use --with-user=USER to specify user that will own the
+     abw application. Default is abw.
+
+     You can use --with-group=GROUP to specify group that will own the
+     abw application. Default is abw.
+
+  4) make
+  
+  5) make install
+
+  6) vi ABW_DIR/etc/abw.conf
+ 
+     ABW_DIR is equal to the value of "--prefix" when configuring ABW
+     installation directory. Specify what monitoring should be done, 
+     follow comments in this file. 
+
+  7) ABW_DIR/bin/dag.sh { 4.3 | 6.2 | 8.2 } [ 0 | 1 | 2 ... ] [ -f ] }
+
+     This step is needed only if you use DAG cards. The "dag.sh" script
+     initializes the specified DAG card. Try "dag.sh" without arguments for
+     online help.
+
+  8) ABW_DIR/bin/mapi.sh [ -d ] start
+
+     Start DiMAPI or MAPI. When you use the central station, use -d to start
+     DiMAPI. When you do not use the central station, omit -d to start MAPI.
+
+  9) ABW_DIR/bin/abw -f ABW_DIR/etc/abw.cfg
+
+     Start ABW executable in foreground to check that it recognizes configured
+     protocols on configured monitoring interfaces. If some traffic is sent to 
+     the configured monitoring interfaces, non-zero number of received packets 
+     and bytes should be reported periodically. You can stop ABW executable by
+     Ctrl-C.
+
+  10) ABW_DIR/bin/abw.sh start
+
+     Start ABW executable in background.
+
+  Optional tasks:
+  
+  11) crontab -e (replace ABW_DIR with ABW installation directory)
+ 
+     0,15,30,45 * * * * ABW_DIR/bin/abw_mapi.sh 2>&1 > /dev/null
+     1,16,31,46 * * * * ABW_DIR/bin/abw_check_rrd.sh 2>&1 > /dev/null
+     2,17,32,47 * * * * ABW_DIR/bin/abw_check_data.sh 2>&1 > /dev/null
+     0 0 * * * ABW_DIR/bin/abw_delete_old_graphs.sh 2>&1 > /dev/null
+
+     abw_mapi.sh checks if ABW and DiMAPI are running and possibly restarts 
+     them.
+
+     abw_check_rrd.sh checks if RRD files are being updated.
+
+     abw_check_data.sh checks if non-zero data is being obtained from 
+     the ABW application and stored to RRD files.
+
+     abw_delete_old_graphs.sh deletes old graphs.
+
+  12) Initialize DAG cards automatically during operating system startup.
+
+     cp scripts/dag-init.sh /etc/init.d/dag
+
+     edit /etc/init.d/dag to call dag.sh with proper arguments for all
+         DAG cards that you have in your server
+
+     do whatever is necessary so that /etc/init.d/dag is called automatically
+         during operating system startup (e.g., type "insserv" in SuSe Linux
+         or create startup links manually)
+
+IV. INSTALLATION OF USER INTERFACE ON THE WEB SERVER
+
+  Do this on the web server.
+
+  1) cd trunk/applications/abw/htdocs
+
+  2) vi conf.php
+
+     Set variables and addresses of remote monitoring stations and 
+     of the central station in the section between "BEGINNING OF USER 
+     CONFIGURATION SECTION" and "END OF USER CONFIGURATION SECTION".
+
+  3) mkdir /var/www/abw
+
+     Make a directory on the web server dedicated for the ABW application.
+     Make sure that the web server can access files in this directory.
+
+  4) cp * /var/www/abw
+
+     Copy user interface scripts to a directory on the web server
+     dedicated for the ABW application.
+
+  5) su www-data
+
+     Switch to the user that is running the web server.
+
+  6) ssh-keygen -t dsa
+
+     Create an SSH key for the user that is running the web serve
+     and store the key to $HOME/.ssh/id_dsa file. Do this ONLY if 
+     this key does not exist yet. Otherwise you will rewrite an
+     existing key.
+
+  7) scp $HOME/.ssh/id_dsa.pub \
+        root@remote_monitoring_station:ABW_HOME/.ssh/authorized_keys
+
+     Copy the public SSH key of the user that is running the web server 
+     to the authorized_keys file of the abw user on all remote monitoring
+     stations and on the central station. This allows the web server to
+     retrieve results. Replace ABW_HOME with the home directory of ABW user.
+          
+     Make sure that correct access rights are set on the public SSH key
+     on all remote monitoring stations and the central station (this should
+     be done on remote monitoring stations and on the central station):
+          
+       chown abw:abw ABW_HOME/.ssh
+       chmod 700     ABW_HOME/.ssh
+ 
+       chown abw:abw ABW_HOME/.ssh/authorized_keys
+       chmod 600     ABW_HOME/.ssh/authorized_keys
+ 
+  8) ssh abw@remote_monitoring_station
+
+     Manually connect to all remote monitoring stations and to the central 
+     station as abw user. Allow to add public SSH keys to the known_hosts file. 
+     This will subsequently allow the web server to connect to remote monitoring
+     stations and to the central station without the need to respond "yes" to 
+     the question about adding the key to the known_hosts file.
+
+  9) Try the user interface by pointing your web browser to the directory
+     on the web server dedicated for the ABW application:
+
+     http://your_web_server/path_to_abw
+
+  Optional tasks:
+
+  10) Edit ssh configuration file /etc/ssh_config and set connection timeout
+     in seconds, for example:
+
+     ConnectTimeout 5
+   
+     If connection timeout is not set explicitely, then the default TCP
+     connection timeout is used. If a remote monitoring station or the
+     central station is not responsive, setting the connection timeout 
+     explicitely will speed up getting response from other stations.
+
+Please report bugs to ubik (-at-) cesnet.cz.

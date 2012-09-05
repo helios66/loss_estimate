@@ -1,0 +1,27 @@
+include ../Makefile.in
+
+INCLUDE=-I. -I.. -I$(DAG_INCLUDE_DIR)
+
+CFLAGS=-g -O2 $(C_WARNINGS) $(INCLUDE) $(C_FEATURES) \
+ -DDEBUG=$(DEBUG) $(INCLUDE)
+
+TARGETS=dagflib.so
+
+all: $(TARGETS)
+
+dagflib.o: dagflib.c ../mapidflib.h ../mapi.h 
+	$(CC) $(CFLAGS) -c $<
+
+to_erf.o: to_erf.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+interface.o: interface.c
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+dagflib.so: dagflib.o interface.o to_erf.o ../flist.o ../fhelp.o ../mapiipc.o ../mstring.o
+	$(CC) $(CFLAGS) -shared  -o $@ $^ -lfl -lrt -L. -L..
+	cp $@ ..
+
+clean:
+	@/bin/rm -f *.o *.so *~ $(TARGETS)
+

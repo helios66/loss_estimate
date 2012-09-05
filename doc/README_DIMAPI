@@ -1,0 +1,189 @@
+	 DiMAPI INSTALLATION AND RUNNING INSTRUCTIONS
+	----------------------------------------------
+
+Contents
+---------
+DiMAPI Overview
+Building and Installing DiMAPI
+Libraries needed for Installing DiMAPI (dependencies)
+Starting mapid/sensor daemons
+Running DiMAPI tests
+Writing new applications for DiMAPI
+Running a Distributed MAPI application
+Contact and Additional Information
+
+
+DiMAPI Overview
+----------------
+
+DiMAPI is an Application Programming Interface for Distributed
+Network Monitoring that provides to users the same framework as
+MAPI.  DiMAPI is an extension of MAPI that adds the capability of
+remote and distributed network monitoring.  Local MAPI applications
+can be used in DiMAPI as well in exactly the same way. Every
+monitoring sensor must run two processes: mapid and mapicommd.  mapid
+is a daemon responsible for all the monitoring tasks in every sensor
+while mapicommd is another daemon responsible for the communication
+between the remote DiMAPI application (DiMAPI stub) and mapid.  The
+DiMAPI application can be run from any computer connected to the
+Internet.  The user gives the set of the remote monitoring sensors
+as a parameter in mapi_create_flow (network scope).
+
+
+Building and Installing DiMAPI
+-------------------------------
+
+DiMAPI must be installed both in monitoring sensors and machines that want to
+start a monitoring application. The steps for building and installing DiMAPI 
+are:
+
+-Download the source code of the latest mapi version.
+-Configure mapi with --enable-dimapi. You can also enable support
+ for DAG or Napatech cards if you need so. (see ./configure --help)
+-Compile DiMAPI by typing 'make' from the mapi directory.
+-Install DiMAPI by typing 'make install' from the mapi directory. The default 
+ installation directory is /usr/local/ (can be changed --prefix=/other/path).
+
+
+Libraries needed for installing DiMAPI (dependecies)
+-----------------------------------------------------
+
+TODO: Fix up this list =)
+
+-libpcap
+-flex
+-librt
+-libresolv
+-zlib1g
+-libpcre
+
+for SSL traffic-encryption, if enabled (disabled by default):
+-openssl
+
+for anonymization, if enabled
+-libnet1-dev
+
+
+Starting mapid/sensor daemons
+------------------------------
+
+After installing DiMAPI in every sensor, you can run mapid and mapicommd
+daemons.  Before running mapid, you should edit mapi.conf and
+/etc/mapi.conf to fit your system.  The default port number for
+DiMAPI is 2233.
+
+Run 'mapid' to start the mapid daemon for every remote sensor.
+Run 'mapicommd' to start the DiMAPI daemon for every remote sensor.
+
+
+Running DiMAPI tests
+---------------------
+
+After installing DiMAPI and starting mapid and mapicommd daemons in remote sensors
+you can test DiMAPI by running some DiMAPI test applications that exist in this
+mapi version, in the directory dimapi_tests/
+You can run every test from this directory as follows:
+
+-Network utilization: this application measures the total network utilization 
+ for all the sensors given as command-line parameter in Mbits/sec.
+  > ./net_utilization "host1:device, host2:device, ..., hostN:device" 
+
+-Test bpf filter: this application applies a given bpf filter and counts all the
+ packets from every sensor given as command-line parameter that matches the 
+ given bpf filter.
+  > ./test_bpf "host1:device, host2:device, ..., hostN:device" "tcp and port 80"
+
+-Test packet and byte counters: this application counts the total number of
+ packets and bytes in every sensor given as command-line parameter.
+  > ./test_counters "host1:device, host2:device, ..., hostN:device"
+
+-Test mapi_get_next_pkt: this application uses mapi_get_next_pkt function and
+ print all IP packets that gets from all sensors given as command-line parameter.
+  > ./test_get_next_pkt "host1:device, host2:device, ..., hostN:device"
+
+-Test TO_FILE function: this application uses the function TO_FILE and creates
+ a file with the specified filename in every remote sensor given from command
+ line with the given limitation in the number of dumped packets (0 for infinite
+ limit).
+  > ./test_to_file "host1:device, host2:device, ..., hostN:device" "trace1" 0
+
+-Worm detection application: this application prints all Slapper worm packets
+ that finds in all remote sensors given as a command-line parameter.
+  > ./worm "host1:device, host2:device, ..., hostN:device"
+
+-Find top 10 ports application: this application finds the top 10 ports in 
+ every monitoring sensor given.
+  > ./test_top "host1:device, host2:device, ..., hostN:device"
+
+
+Writing new applications for DiMAPI
+------------------------------------
+
+Writing applications using DiMAPI is done in the same way as MAPI.
+Firstly, using mapi_create_flow() you can create network flows
+described from the fd that is returned. mapi_create_flow() takes
+as argument the network scope that consists of all monitoring sensors
+you want to use including the monitoring interface for each one
+divided by the ':' character.
+   e.g. mapi_create_flow("host1:eth0, host1:eth1, host2:/dev/dag, host3:eth0")
+For every network flow you can apply the function you want using
+the mapi_apply_function(). Before getting the results the mapi_connect()
+function must be called. To get results from the remote sensors,
+the mapi_read_results() function is used for the corresponding
+function that have been applied.  While in MAPI the mapi_read_results()
+function returns a single mapi_results_t struct that contains the actual result, 
+the time whick this result has beed produced and the result size,
+in DiMAPI it returns a table of mapi_results_t from all the monitoring sensors.
+The mapi_results_t strcut that is returned by mapi_read_results() is shown below:
+
+/*structure returned by read_results*/
+typedef struct mapi_results {
+  void* res;                    //actual result
+  unsigned long long ts;        //timestamp
+  int size;                     //result size
+} mapi_results_t;
+
+mapi_read_results() returns a table of mapi_results_t that each one 
+contains the results from one monitoring sensor.
+
+The mapi_get_scope_size() function returns the number of monitoring sensors
+for a specific network scope, denoted by the function's argument fd.
+The monitoring sensors have been declared in mapi_create_flow().
+mapi_read_results() function returns the results of every monitoring sensor
+in a table with the same order that each monitoring sensor have been given in
+mapi_create_flow().
+
+The other MAPI function that gives results
+from the monitoring sensors is the mapi_get_next_pkt() function.
+In DiMAPI, the mapi_get_next_pkt() returns packets from the monitoring
+sensors in a round-robin way if possible, else from a monitoring
+sensor that has a packet to send to our application.  Finally, in
+order to terminate, cleanup and close one network flow the
+mapi_close_flow() fucntion is used.
+
+To compile a DiMAPI application (e.g. file test.c) run
+ > gcc test.c -o test -lmapi
+
+if necessary specify include path with -I and library path with -L
+
+
+Running a Distributed DiMAPI application
+---------------------------------------
+
+In order to run a distibuted DiMAPI application, mapid and mapicommd
+daemons must be run in every remote sensor you want to use. You
+should write and compile the MAPI application you want to run with
+DiMAPI support, as told above.  When running the application, the
+DiMAPI stub connects to all sensors to exchange control data and
+get results.
+
+
+Additional Information
+-----------------------
+
+Additional information can be found at http://mapi.uninett.no To
+get in contact with other users and the developers of MAPI and
+DiMAPI, please join the MAPI Mailing list
+(http://postlister.uninett.no/sympa/info/mapi).
+
+

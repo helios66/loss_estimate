@@ -1,0 +1,23 @@
+
+mapidump: MAPI implementation of tcpdump
+
+mapidump was writen to show a quick implementation of tcpdump 
+functionality using MAPI. It stores packets to file using the adapters
+native format. For NIC cards, packets are stored in libpcap format and
+for DAG cards they are stored in DAG ERF format.
+
+To compile just type 'make'
+
+Usage: ./mapidump [-Xvh]
+       ./mapidump [-Xvh] [-c count] [-r file] [-w file] [-s string] 
+	   			  [filter expression]
+  -h   this page
+  -X   print payload
+  -v   increase verbosity
+  -c   work till count packets
+  -r   read packets from file
+  -a   anonymize IP addresses
+  -w   write packets to file in raw format
+  -s   string to search in payload
+  -d   device (default "eth0")
+

@@ -1,0 +1,16 @@
+
+tracker: A Network Traffic Classification tool using MAPI
+
+tracker is a tool for classifying Network Traffic into 
+	Network Protocols, Internet Protocols and Applications.
+	It has the functionality to identify well-known protocols
+	operating in well-known ports and also identify  dynamic ports, 
+	used by serveral applications (mainly P2P), through deep 
+	packet inspection. 
+
+Usage: ./tracker [-h]
+       ./tracker [-h] [-r file]
+  -h   this page
+  -r   read packets from file
+
+	

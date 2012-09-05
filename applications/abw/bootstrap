@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# Bootstrap script to bring the source tree into state where the
+# end user can simply say:
+# configure && make && make install
+#
+
+# create directory for M4 macros if necessary
+if [ ! -d macros ]; then
+	mkdir macros
+fi
+
+# bootstrap autotools
+aclocal -I macros \
+&& autoheader \
+&& automake --gnu --add-missing --copy \
+&& autoconf
+

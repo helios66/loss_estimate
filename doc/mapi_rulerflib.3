@@ -1,0 +1,54 @@
+.\" MAPI RULER man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapi_rulerflib.3 |less
+.\"
+.TH MAPI_RULER 3 "August, 2007"
+.SH NAME
+MAPI rulerflib \- MAPI Function Library to interface with Ruler
+.SH SYNOPSIS
+.nf
+\fBRULER\fP     Applies a Ruler filter
+.fi
+.SH DESCRIPTION
+The RULER MAPI function library (rulerflib) provides
+a single predefined function that compiles and then applies a Ruler
+packet filter. Packets are matched and rewritten in accordance with the
+standard Ruler behavior, and if they are not rejected by the filter
+they
+will be returned to \fBMAPId\fP
+to get processed from subsequent funtions.
+.LP
+The function takes a single string parameter: the name of a filter
+file to apply. The function does not return any result.
+.LP
+Through the RULER
+mapi function a Ruler filter can be applied to a network flow
+in the usual way: by using the
+.B mapi_apply_function()
+call.
+For further information regarding 
+.B mapi_apply_function()
+see the
+.BR mapi (3)
+page and the example at the end of this page.
+.\".SH FUNCTIONS
+.\"--------------------------------------------------------
+.SH "EXAMPLE"
+For example, the following invocation of
+.B mapi_apply_function
+applies a filter
+.B anonymize-all.rl
+to the stream
+.BR fd :
+.nf
+
+    mapi_apply_function(fd, "RULER", "anonymize-all.rl");
+.fi
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR mapi (3), 
+.BR mapi_stdflib (3),
+.BR ruler (1)
+.LP
+For more information about Ruler, see <http://projects.gforge.cs.vu.nl/ruler/>

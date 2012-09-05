@@ -1,0 +1,10 @@
+[driver]
+device=ntx0
+driver=mapinapatechdrv.so
+description=Napatech capture card
+
+[format]
+format=MFF_NAPATECH
+driver=mapinapatechdrv.so
+description=Offline napatech-capture
+

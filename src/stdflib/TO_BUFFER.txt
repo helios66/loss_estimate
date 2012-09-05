@@ -1,0 +1,8 @@
+PACKET ZERO COPY FOR NICs
+- The packet is copied in TO_BUFFER.
+- offline flows use the same cbuf!
+- Zero-copy cannot be performed since pcap performs at least one copy in
+kernel-space and one from kernel to user-space. (Maybe we can go around this
+by pointing pcap to our cbuf! This could fail major time if kernel cannot
+right to user-space memory).
+- The whole FIFO is writable, but we do safe_write in mapid.

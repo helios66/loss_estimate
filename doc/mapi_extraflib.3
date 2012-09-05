@@ -1,0 +1,67 @@
+.\" MAPI man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapi_extraflib.3 |less
+.\"
+.TH MAPI_EXTRAFLIB 3 "December, 2004"
+.SH NAME
+MAPI extraflib \- Extra MAPI Function Library
+.SH SYNOPSIS
+.nf
+\fBCOOKING\fP       TCP/IP packet defragmentation and stream reassembly
+\fBREGEXP\fP	    Regular expression pattern matching       
+\fBTOP\fP   	    Returns top X values of a field
+
+.fi
+.SH DESCRIPTION
+The Extra MAPI function library (extraflib) provides
+a set functions that cover
+advanced monitoring needs.
+.SH FUNCTIONS
+.\"--------------------------------------------------------
+.IP "\fBCOOKING\fP (int \fIthreshold\fP, int \fItimeout\fP, int \fIret_once\fP, int \fIcollect\fP)"
+Processes the packets of a flow according to the TCP/IP protocol
+stack, by performing IP defragmentation and TCP stream reassembly.
+The received packets are stripped from their TCP/IP headers and assembled into a
+single cooked packet. The cooked packet has a pseudo TCP/IP header
+containing the size of the cooked packet and the source and destination
+IP addresses and port numbers.
+A cooked packet is considered to be ready for processing under one
+of the following conditions:
+.nf
+  - its size exceeds the specified threshold
+  - a timeout since the arrival of the first fragment is reached
+  - the session is closed (all fragments have arrived)
+.fi
+The \fIthreshold\fP is by default 32KB
+and the \fItimeout\fP is set to 30 sec.
+Using -1 for both parameters sets the default values.
+If \fIret_once\fP is zero, only the first chunk from a tcp stream is returned.
+Otherwise, all the chunks of the stream are returned.
+The \fIcollect\fP argument defines the direction of the packets that
+will be returned: 
+.B CLIENT_SIDE 
+gives only client's data, 
+.B SERVER_SIDE 
+the server's data only, while 
+.B BOTH_SIDE 
+is used to get all packets of the flow.
+
+Type of results: \fBnone\fP.
+.\"--------------------------------------------------------
+.IP "\fBREGEXP\fP (char* \fIreg_expr\fP)"
+Regular expression pattern matching, using the \fIreg_expr\fP regular expression.
+
+Type of results: \fBunsigned long long\fP.
+.\"--------------------------------------------------------
+.IP "\fBTOP\fP (int \fIX\fP, int \fIprotocol\fP, int \fIfield\fP)"
+Return TOP \fIX\fP values of the \fIfield\fP field of the \fIprotocol\fP protocol.
+
+Type of results: \fBunsigned int[]\fP.
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR mapi (3), 
+.BR mapi_trackflib (3),
+.BR mapi_anonflib (3),
+.BR tcpdump (1),
+.BR pcap (3)

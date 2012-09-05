@@ -1,0 +1,267 @@
+include Makefile.in
+
+INCLUDE=-I. -I$(DAG_INCLUDE_DIR)
+
+#CFLAGS=-g -O2 $(C_WARNINGS) $(C_FEATURES)
+CFLAGS=-g $(C_WARNINGS) $(C_FEATURES)
+
+
+TARGETS= mapi.so mapid build_tests mapinicdrv.so mapidstdflib.so flist.o list.o parseconf.o priorities.o mapi_errors.o $(ADMCTRLCL_TARGETS) $(DIMAPI_TARGETS)
+
+DIMAPI_TARGETS=
+ifeq ($(WITH_DIMAPI),1)
+DIMAPI_TARGETS=build_agent build_dimapi_tests
+endif
+
+.PHONY: build_stdlib build_anonlib build_tracklib build_combo6lib build_daglib build_ipfixlib build_etherlib
+
+DAG=
+ifeq ($(WITH_DAG),1)
+	DAG=mapidagdrv.so dagflib.so
+	DAGAPI=-ldag
+endif
+
+COMBOSIX=
+ifeq ($(WITH_COMBO6),1)
+	COMBOSIX=mapicombo6drv.so combo6flib.so
+endif
+
+ifeq ($(WITH_DIMAPI),1)
+	CFLAGS := $(CFLAGS) -DDIMAPI
+endif
+
+IPFIX_TARGETS=
+ifeq ($(WITH_IPFIX),1)
+	IPFIX_TARGETS=ipfixlib.so
+endif
+
+ETHEREAL_TARGETS=
+ifeq ($(WITH_ETHEREAL),1)
+	ETHEREAL_TARGETS=etherflib.so 
+endif
+
+ANONYMIZATION_TARGETS=
+ifeq ($(WITH_ANONYMIZATION),1)
+	CFLAGS := $(CFLAGS) -DWITH_ANONYMIZATION
+	ANONYMIZATION_TARGETS=anonlib.so
+endif
+
+TRACKING_TARGETS=
+ifeq ($(WITH_TRACKING),1)
+	TRACKING_TARGETS=tracklib.so
+endif
+
+ifeq ($(WITH_PRIORITIES),1)
+	CFLAGS := $(CFLAGS) -DDEBUG=$(DEBUG) $(INCLUDE) -DWITH_FUNCT_STATS -DWITH_PRIORITIES -DPRIORITIES=$(PRIORITIES)
+else
+CFLAGS := $(CFLAGS) -DDEBUG=$(DEBUG) $(INCLUDE) -DWITH_FUNCT_STATS -DPRIORITIES=$(PRIORITIES)
+endif
+
+ifeq ($(WITH_MODIFY_PKTS),1)
+	CFLAGS := $(CFLAGS) -DWITH_MODIFY_PKTS 
+endif
+
+ifeq ($(WITH_GLOBAL_OPT),1)
+	CFLAGS := $(CFLAGS) -DWITH_GLOBAL_OPT 
+endif
+
+ifeq ($(VALGRIND),1)
+	CFLAGS := $(CFLAGS) -DVALGRIND
+endif
+
+ifeq ($(WITH_AUTHENTICATION),1)
+	CFLAGS := $(CFLAGS) -DWITH_AUTHENTICATION
+endif
+
+all: $(TARGETS) $(DAG) $(COMBOSIX) $(IPFIX_TARGETS) $(ETHEREAL_TARGETS) $(ANONYMIZATION_TARGETS) $(TRACKING_TARGETS)
+
+mapi.o: mapi.c printfstring.h mapi.h mapiipc.h mapidlib.h mapid.h mapidrv.h mapidflib.h  parseconf.c mapi_errors.o $(ADMCTRL_BYTESTREAM_H)
+	$(CC) $(CFLAGS) $(KEYNOTE_CFLAGS) $(ADMCTRLCL_CFLAGS) -fPIC -c $<
+
+mapiipc.o: mapiipc.c mapi.h mapiipc.h
+	$(CC) $(CFLAGS) -fPIC -c $<
+
+mstring.o: mstring.c mstring.h
+	$(CC) $(CFLAGS) -fPIC -c $<
+
+mapipktdecoder.o: mapipktdecoder.c mapipktdecoder.h
+	$(CC) $(CFLAGS) -fPIC -c $<
+
+
+mapi.so: mapi.o mapiipc.o mapilibhandler.o fhelp.o flist.o parseconf.o mapipktdecoder.o priorities.o printfstring.o mapi_errors.o 
+	$(CC) -shared -o $@ $^ -ldl $(KEYNOTE_LDADD) -lpthread
+
+mapi_errors.c: errors.mapi
+	echo -e "#ifndef _MAPI_ERRORS_H_ \n#define _MAPI_ERRORS_H_\n" > mapi_errors.h	
+	cat errors.mapi|grep "^#" >> mapi_errors.h
+	echo -e "\ntypedef struct errstrct{ \nint err_no;  \nchar *desc; 	\n} errorstruct; \n" >> mapi_errors.h
+	echo -e "#endif\n" >> mapi_errors.h
+	
+	echo -e "#include \"mapi_errors.h\"\n\n const errorstruct Errors[] =\n{" > mapi_errors.c
+	cat errors.mapi|grep -v "#"| awk -F= '{print "{" $$1 "," $$2 "},"}' >> mapi_errors.c
+	echo -e "{0,0} };\n\n" >> mapi_errors.c
+
+mapi_errors.o: mapi_errors.c mapi_errors.h
+	$(CC) $(CFLAGS) -c mapi_errors.c
+
+#mapierror.o: mapierror.c mapi.h
+#	$(CC) $(CFLAGS) -c $<
+
+mapilibhandler.o: mapilibhandler.c mapilibhandler.h
+	$(CC) $(CFLAGS) -c $<
+
+mapidlib.o: mapidlib.c flist.h mapidlib.h mapid.h mapidrv.h mapi.h mapi_errors.h mstring.h mapilibhandler.h mapidflib.h priorities.o
+	$(CC) $(CFLAGS) -fPIC -c $<
+
+mapid.o: mapid.c mapid.h mapiipc.h mapi.h $(ADMCTRLCL_HEADERS) $(RESCTRL_HEADERS)
+	$(CC) $(CFLAGS) $(ADMCTRLCL_CFLAGS) $(RESCTRL_CFLAGS) -c $<
+
+mapid: mapid.o mapiipc.o mstring.o flist.o parseconf.o priorities.o printfstring.o  mapi_errors.o $(ADMCTRLCL_OBJS) $(RESCTRL_OBJS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIB_DIR) -lpcap -lpthread -ldl $(ADMCTRLCL_LDFLAGS) $(ADMCTRLCL_LDADD) $(RESCTRL_LDFLAGS) $(RESCTRL_LDADD)
+
+fhelp.o: fhelp.c mapi.h fhelp.h mapid.c
+	$(CC) $(CFLAGS) -c $<
+
+flist.o: flist.c flist.h
+	$(CC) $(CFLAGS) -c $<
+
+printfstring.o: printfstring.c printfstring.h
+	$(CC) $(CFLAGS) -c $<
+
+priorities.o:	priorities.c priorities.h
+	$(CC) $(CFLAGS) -c $<
+
+parseconf.o: parseconf.c parseconf.h
+	$(CC) $(CFLAGS) -c $<
+
+list.o: list.c list.h
+	$(CC) $(CFLAGS) -c $<
+
+mapi_function.o: mapi_function.c mapi_function.h
+	$(CC) -c $< $(CFLAGS)
+
+mapidagdrv.o: mapidagdrv.c mapi.h mapidrv.h mapidlib.h mapid.h
+	$(CC) $(CFLAGS) -fPIC -c $<
+
+mapidagdrv.so: mapidagdrv.o mapidlib.o flist.o mapiipc.o mstring.o  mapilibhandler.o parseconf.o priorities.o printfstring.o
+	$(CC) $(CFLAGS) -shared  -o $@ $^ -lpcap -lfl -lrt $(DAGAPI)
+
+mapinicdrv.o: mapinicdrv.c mapi.h mapidrv.h mapidlib.h mapid.h mapi_errors.h
+	$(CC) $(CFLAGS) -fPIC -c $<
+
+mapinicdrv.so: mapinicdrv.o mapidlib.o flist.o mapiipc.o mstring.o  mapilibhandler.o parseconf.o cbuf.o priorities.o printfstring.o
+	$(CC) $(CFLAGS) -shared -o $@ $^ -lpcap -lfl -lrt
+
+#mapinicdrv_buf.o: mapinicdrv_buf.c mapi.h mapidrv.h mapidlib.h mapid.h mapi_errors.h
+#	$(CC) $(CFLAGS) -fPIC -c $<
+
+mapinicdrv_buf.so: mapinicdrv_buf.o mapidlib.o flist.o mapiipc.o mstring.o  mapilibhandler.o parseconf.o cbuf.o priorities.o
+	$(CC) $(CFLAGS) -shared -o $@ $^ -lpcap -lfl -lrt
+
+cbuf.o: cbuf.c cbuf.h
+	$(CC) $(CFLAGS) -c $<
+
+fifo.o: fifo.c fifo.h
+	$(CC) $(CFLAGS) -c $<
+
+resctrl_cl.o: resctrl_cl.c resctrl_cl.h
+	$(CC) $(CFLAGS) $(RESCTRL_CFLAGS) -c $<
+
+mapicombo6drv.o: mapicombo6drv.c mapi.h mapidrv.h mapidlib.h mapid.h mapi_errors.h
+	$(CC) $(CFLAGS) -I$(SCAMPI_PREFIX)/libscampi -I$(LIBEROUTER_PREFIX)/sys_sw/libcombo -I$(LOBSTER_PREFIX)/filter/src -fPIC -c $<
+
+mapicombo6drv.so: mapicombo6drv.o mapidlib.o flist.o mapiipc.o mstring.o mapilibhandler.o parseconf.o priorities.o
+	$(CC) $(CFLAGS) -shared  -o $@ $^ -lpcap -lfl -lrt -L. -L$(SCAMPI_PREFIX)/libscampi -lscampi -L$(LOBSTER_PREFIX)/filter/src -lfilter -L$(LIBEROUTER_PREFIX)/sys_sw/libcombo -lcombo -lglib-2.0
+
+mapidstdflib.so: build_stdlib
+	cd stdlib && make
+
+anonlib.so: build_anonlib 
+	cd anonymization && make
+
+tracklib.so: build_tracklib 
+	cd tracklib && make
+
+combo6flib.so: build_combo6lib
+	cd combo6lib && make
+
+dagflib.so: build_daglib
+	cd daglib && make
+
+ipfixlib.so: build_ipfixlib
+	cd ipfixlib && make
+
+etherflib.so: build_etherlib
+	cd etherlib && make
+
+build_tests:
+	cd tests && make
+
+build_dimapi_tests:
+	cd dimapi_tests && make
+
+build_agent:
+	cd agent && make
+
+docs:
+	doxygen doxygen.cfg
+
+clean:
+	@/bin/rm -f mapidtmp.* *.o *.so *~ $(TARGETS) \
+	       mapi_errors.h mapi_errors.c\
+	       $(DAG) $(COMBOSIX) $(IPFIX_TARGETS) $(ETHEREAL_TARGETS) \
+	        __mapi*sock*__
+	cd stdlib && make clean
+	cd combo6lib && make clean
+	cd daglib && make clean
+	cd ipfixlib && make clean
+	cd etherlib && make clean
+	cd tests && make clean
+ifeq ($(WITH_DIMAPI),1)
+	cd dimapi_tests && make clean
+	cd agent && make clean
+endif
+	cd anonymization && make clean
+	cd tracklib && make clean
+
+install: all
+	./$(MKINSTALLDIRS) $(INSTALL_BINDIR)
+	$(INSTALL) mapid $(INSTALL_BINDIR)
+ifeq ($(WITH_DIMAPI),1)
+	$(INSTALL) agent/agent $(INSTALL_BINDIR)
+endif
+	sh ./gen-mapi-conf -c $(WITH_COMBO6) -d $(WITH_DAG) -i $(WITH_IPFIX) \
+		-e $(WITH_ETHEREAL) -a $(WITH_ANONYMIZATION) -t $(WITH_TRACKING) \
+		-l $(INSTALL_LIBDIR) mapi.conf.in mapi.conf
+	$(INSTALL) mapi.conf /etc
+	./$(MKINSTALLDIRS) $(INSTALL_INCDIR)
+	$(INSTALL) mapi.h  $(INSTALL_INCDIR)
+	$(INSTALL) getres.h  $(INSTALL_INCDIR)
+	$(INSTALL) mapi_errors.h  $(INSTALL_INCDIR)
+	$(INSTALL) ipfixlib.h  $(INSTALL_INCDIR)
+	$(INSTALL) mapipktdecoder.h  $(INSTALL_INCDIR)
+	./$(MKINSTALLDIRS) $(INSTALL_LIBDIR)
+	$(INSTALL) mapi.so  $(INSTALL_LIBDIR)
+	$(INSTALL) mapinicdrv.so  $(INSTALL_LIBDIR)
+	$(INSTALL) mapidstdflib.so  $(INSTALL_LIBDIR)
+ifeq ($(WITH_DAG),1)
+	$(INSTALL) dagflib.so  $(INSTALL_LIBDIR)
+	$(INSTALL) mapidagdrv.so  $(INSTALL_LIBDIR)
+endif
+ifeq ($(WITH_COMBO6),1)
+	$(INSTALL) combo6flib.so  $(INSTALL_LIBDIR)
+	$(INSTALL) mapicombo6drv.so  $(INSTALL_LIBDIR)
+endif
+ifeq ($(WITH_IPFIX),1)
+	$(INSTALL) ipfixlib.so  $(INSTALL_LIBDIR)
+endif
+ifeq ($(WITH_ETHEREAL),1)
+	$(INSTALL) etherflib.so  $(INSTALL_LIBDIR)
+endif
+ifeq ($(WITH_ANONYMIZATION),1)
+	$(INSTALL) anonlib.so  $(INSTALL_LIBDIR)
+endif
+ifeq ($(WITH_TRACKING),1)
+	$(INSTALL) tracklib.so  $(INSTALL_LIBDIR)
+endif
+	cd stdlib && make install

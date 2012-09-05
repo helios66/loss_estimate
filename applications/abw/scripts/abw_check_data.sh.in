@@ -1,0 +1,119 @@
+#!/bin/bash
+#
+# Copyright (c) 2006, CESNET
+# All rights reserved.
+#
+# LICENSE TERMS
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the company nor the names of its contributors 
+#       may be used to endorse or promote products derived from this 
+#       software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+# THE COMPANY OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# $Id$
+#
+
+export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+ABW_DIR=@ABW_DIR@
+ABW_VAR_DIR=@ABW_VAR_DIR@
+RRD_DIR=${ABW_VAR_DIR}/rrd
+LOG_DIR=${ABW_VAR_DIR}/log
+ABW_SCRIPT=${ABW_DIR}/bin/abw.sh
+MAPI_SCRIPT=${ABW_DIR}/bin/mapi.sh
+LOG_FILE=${LOG_DIR}/abw.log
+SCRIPT_NAME=`basename $0`
+
+usage() {
+	echo "Usage: abw_check_data.sh [ -d ]"
+}
+
+if [ $# -gt 1 ]; then
+   usage
+   exit 1
+fi
+
+if [ $# -eq 1 -a "x$1" != "x-d" ]; then
+   usage
+   exit 1
+fi
+
+mkdir -p ${LOG_DIR}
+
+if [ ! -f ${LOG_FILE} ]; then
+        touch ${LOG_FILE}
+fi
+
+CURRENT_DATE=`date`
+
+RESTART=0
+
+# Find filenames of RRD file that store results for all traffic. At least
+# one such filename should always exist even if we do not monitor individual
+# protocols explicitely and it should always include non-zero values
+# even if some protocols are not present on the line.
+
+RRD_FILES=`ls -t --time-style=+%s ${RRD_DIR}/*all.rrd 2>&1|grep -v "No such file"`
+
+for RRD_FILE in $RRD_FILES 
+do
+	echo "RRD_FILE: $RRD_FILE"
+
+	# Find the maximum number of packets (first data column after timestamps, 
+	# selected by awk) in the last 10 seconds. Even if there is no data on the
+	# line at some intervals, there should be at least one packet in 10 seconds.
+
+	MAX_VALUE=`rrdtool fetch $RRD_FILE AVERAGE -e now -s e-10 | grep -v packets | grep -v nan | awk '{print $2}'| sort -n -r| head -n 1`
+
+	echo "MAX_VALUE: $MAX_VALUE"
+
+	# Extract integer part from the mantisa-exponent floating of rrdtool fetch
+	# It should be zero only if the whole floating point number is zero.
+
+	MAX_VALUE_INTEGER=`echo $MAX_VALUE | awk -F. '{print $1}'`
+
+	if [ -z "$MAX_VALUE_INTEGER" ]; then
+		MAX_VALUE_INTEGER=0
+	fi
+
+	echo "MAX_VALUE_INTEGER: $MAX_VALUE_INTEGER"
+
+	if [ $MAX_VALUE_INTEGER -le 0 ]; then
+		echo "$CURRENT_DATE: Maximum recent value is 0, restarting abw"
+		echo "$CURRENT_DATE: $SCRIPT_NAME: Maximum recent value is 0, restarting abw" >> $LOG_FILE
+		RESTART=1
+	else
+		echo "Maximum recent value is $MAX_VALUE_INTEGER, abw is running"
+	fi
+done
+
+if [ $RESTART -gt 0 ]; then
+   ${ABW_SCRIPT} stop
+	${MAPI_SCRIPT} stop
+
+   if [ "$1x" = "-dx" ]; then
+		${MAPI_SCRIPT} -d start
+   else
+      ${MAPI_SCRIPT} start
+   fi
+
+   ${ABW_SCRIPT} start
+fi

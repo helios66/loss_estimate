@@ -1,0 +1,16 @@
+sources = ear.c rabin.c cache.c cputime.c welchia.c
+objects = $(sources:.c=.o)
+target = libear.a
+
+
+INCLUDE = -I.
+CFLAGS = $(INCLUDE) -Wall -O3 -ggdb
+RM = rm
+CC = gcc
+
+all: $(target)
+
+clean:
+	@$(RM) $(target) $(objects)
+
+$(target): $(target)($(objects)) $(objects)

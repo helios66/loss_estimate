@@ -1,0 +1,38 @@
+Source: mapi
+Section: net
+Priority: optional
+Maintainer: Jon K Hellan <jon.kare.hellan@uninett.no>
+Build-Depends: debhelper (>= 5), libnids-dev
+Standards-Version: 3.8.0
+
+Package: mapi
+Architecture: i386
+Depends: ${shlibs:Depends}, ${misc:Depends}, ucf
+Description: Measurement API
+ The SCAMPI Measurement API. This API provides a common interface to
+ several types of passive monitoring hardware. The package is intended
+ for use within UNINETT, the Norwegian national research and education
+ network, particularly within the "Målepåle" program.
+
+Package: mapi-dag
+Architecture: i386
+Depends: dag (>= 3.0.0-1), ${shlibs:Depends}, ${misc:Depends}, ucf, mapi
+Conflicts: mapi (<< 1.1.20060904-1)
+Description: Endace DAG card driver for Measurement API.
+ Endace DAG card driver for the SCAMPI Measurement API. This API provides
+ a common interface to several types of passive monitoring hardware. The
+ package is intended for use within UNINETT, the Norwegian national 
+ research and education network, particularly within the "Målepåle"
+ program. 
+
+Package: mapi-napatech
+Architecture: i386
+Depends: dag (>= 3.0.0-1), ${shlibs:Depends}, ${misc:Depends}, ucf, mapi
+Conflicts: mapi (<< 1.1.20060904-1)
+Description: Napatech NT card driver for Measurement API.
+ Napatech NT card driver for the SCAMPI Measurement API. This API 
+ provides a common interface to several types of passive monitoring
+ hardware. The package is intended for use within UNINETT, the Norwegian
+ national research and education network, particularly within the 
+ "Målepåle" program. 
+

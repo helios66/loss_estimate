@@ -1,0 +1,13 @@
+MAP,"Map to integer"
+MAP_DISTRIBUTION,"Map based on distribution",2
+RANDOM,"Randomize"
+FILENAME_RANDOM,"Randomize but keep extension"
+STRIP,"Remove field",1
+HASHED,"Hash field",1
+PATTERN_FILL,"Fill with a pattern",2
+ZERO,"Set to zero"
+REPLACE,"Replace",1
+PREFIX_PRESERVING,"Prefix-preserving IP"
+REGEXP,"Regular expression substitute",3
+UNCHANGED,"Unchanged"
+CHECKSUM_ADJUST,"Checksum adjust"

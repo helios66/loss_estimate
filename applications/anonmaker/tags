@@ -1,0 +1,195 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.4	//
+AnonymizeFunction	AnonymizePolicyGUI.java	/^	public AnonymizeFunction(String line) throws Exception {$/;"	m	class:AnonymizeFunction
+AnonymizeFunction	AnonymizePolicyGUI.java	/^class AnonymizeFunction {$/;"	c
+AnonymizePolicyGUI	AnonymizePolicyGUI.java	/^	public AnonymizePolicyGUI() {$/;"	m	class:AnonymizePolicyGUI
+AnonymizePolicyGUI	AnonymizePolicyGUI.java	/^public class AnonymizePolicyGUI implements ActionListener{$/;"	c
+FTPHeaderPanel	AnonymizePolicyGUI.java	/^	public FTPHeaderPanel(Vector v,JFrame frame) {$/;"	m	class:FTPHeaderPanel
+FTPHeaderPanel	AnonymizePolicyGUI.java	/^class FTPHeaderPanel extends JPanel {$/;"	c
+FunctionMenuItem	AnonymizePolicyGUI.java	/^	public FunctionMenuItem(AnonymizeFunction f) {$/;"	m	class:FunctionMenuItem
+FunctionMenuItem	AnonymizePolicyGUI.java	/^class FunctionMenuItem extends JMenuItem {$/;"	c
+HEIGHT	AnonymizePolicyGUI.java	/^	int HEIGHT=120;$/;"	f	class:ICMPHeaderPanel
+HEIGHT	AnonymizePolicyGUI.java	/^	int HEIGHT=170;$/;"	f	class:UDPHeaderPanel
+HEIGHT	AnonymizePolicyGUI.java	/^	int HEIGHT=350;$/;"	f	class:IPHeaderPanel
+HEIGHT	AnonymizePolicyGUI.java	/^	int HEIGHT=350;$/;"	f	class:TCPHeaderPanel
+HEIGHT	AnonymizePolicyGUI.java	/^	int HEIGHT=450;$/;"	f	class:FTPHeaderPanel
+HEIGHT	AnonymizePolicyGUI.java	/^	int HEIGHT=730;$/;"	f	class:HTTPHeaderPanel
+HTTPHeaderPanel	AnonymizePolicyGUI.java	/^	public HTTPHeaderPanel(Vector v,JFrame frame) {$/;"	m	class:HTTPHeaderPanel
+HTTPHeaderPanel	AnonymizePolicyGUI.java	/^class HTTPHeaderPanel extends JPanel {$/;"	c
+HeaderField	AnonymizePolicyGUI.java	/^	public HeaderField(String name,String title,int width,Vector f) {$/;"	m	class:HeaderField
+HeaderField	AnonymizePolicyGUI.java	/^	public HeaderField(String name,String title,int width,Vector f,String[] exclusionList) {$/;"	m	class:HeaderField
+HeaderField	AnonymizePolicyGUI.java	/^class HeaderField extends JPanel implements MouseListener,ActionListener{$/;"	c
+HeaderPanelInterface	AnonymizePolicyGUI.java	/^interface HeaderPanelInterface {$/;"	i
+ICMPHeaderPanel	AnonymizePolicyGUI.java	/^	public ICMPHeaderPanel(Vector v,JFrame frame) {$/;"	m	class:ICMPHeaderPanel
+ICMPHeaderPanel	AnonymizePolicyGUI.java	/^class ICMPHeaderPanel extends JPanel {$/;"	c
+IPHeaderPanel	AnonymizePolicyGUI.java	/^	public IPHeaderPanel(Vector v,JFrame frame) {$/;"	m	class:IPHeaderPanel
+IPHeaderPanel	AnonymizePolicyGUI.java	/^class IPHeaderPanel extends JPanel {$/;"	c
+ProtocolGroup	AnonymizePolicyGUI.java	/^	public ProtocolGroup(String n,Vector functionsVector,JFrame frame) {$/;"	m	class:ProtocolGroup
+ProtocolGroup	AnonymizePolicyGUI.java	/^class ProtocolGroup {$/;"	c
+SplashWindow	AnonymizePolicyGUI.java	/^    public SplashWindow(String filename,JFrame f, int waitTime)$/;"	m	class:SplashWindow
+SplashWindow	AnonymizePolicyGUI.java	/^class SplashWindow extends JWindow$/;"	c
+TCPHeaderPanel	AnonymizePolicyGUI.java	/^	public TCPHeaderPanel(Vector v,JFrame frame) {$/;"	m	class:TCPHeaderPanel
+TCPHeaderPanel	AnonymizePolicyGUI.java	/^class TCPHeaderPanel extends JPanel {$/;"	c
+UDPHeaderPanel	AnonymizePolicyGUI.java	/^	public UDPHeaderPanel(Vector v,JFrame frame) {$/;"	m	class:UDPHeaderPanel
+UDPHeaderPanel	AnonymizePolicyGUI.java	/^class UDPHeaderPanel extends JPanel {$/;"	c
+WIDTH	AnonymizePolicyGUI.java	/^	int WIDTH=750;$/;"	f	class:ICMPHeaderPanel
+WIDTH	AnonymizePolicyGUI.java	/^	int WIDTH=750;$/;"	f	class:IPHeaderPanel
+WIDTH	AnonymizePolicyGUI.java	/^	int WIDTH=750;$/;"	f	class:TCPHeaderPanel
+WIDTH	AnonymizePolicyGUI.java	/^	int WIDTH=750;$/;"	f	class:UDPHeaderPanel
+WIDTH	AnonymizePolicyGUI.java	/^	int WIDTH=770;$/;"	f	class:FTPHeaderPanel
+WIDTH	AnonymizePolicyGUI.java	/^	int WIDTH=770;$/;"	f	class:HTTPHeaderPanel
+actionPerformed	AnonymizePolicyGUI.java	/^	public void actionPerformed(ActionEvent e) {$/;"	m	class:AnonymizePolicyGUI
+actionPerformed	AnonymizePolicyGUI.java	/^	public void actionPerformed(ActionEvent e) {$/;"	m	class:HeaderField
+addField	AnonymizePolicyGUI.java	/^	public void addField(String define,String descr,int width,int gridx,int gridy,int gridwidth,GridBagConstraints c,String[] exclList) {$/;"	m	class:FTPHeaderPanel
+addField	AnonymizePolicyGUI.java	/^	public void addField(String define,String descr,int width,int gridx,int gridy,int gridwidth,GridBagConstraints c,String[] exclList) {$/;"	m	class:HTTPHeaderPanel
+allowFuncBeforeCooking	AnonymizePolicyGUI.java	/^	public void allowFuncBeforeCooking(Vector v) {$/;"	m	class:ProtocolGroup
+allowedFuncsBeforeAnon	AnonymizePolicyGUI.java	/^	Vector allowedFuncsBeforeAnon;$/;"	f	class:ProtocolGroup
+allowframe	AnonymizePolicyGUI.java	/^	JFrame allowframe,deleteframe;$/;"	f	class:AnonymizePolicyGUI
+applyCooking	AnonymizePolicyGUI.java	/^	public void applyCooking() {$/;"	m	class:ProtocolGroup
+applyUnCook	AnonymizePolicyGUI.java	/^	public void applyUnCook() {$/;"	m	class:ProtocolGroup
+checksumBehavior	AnonymizePolicyGUI.java	/^	String checksumBehavior;$/;"	f	class:HeaderField
+codeframe	AnonymizePolicyGUI.java	/^	JFrame codeframe;	$/;"	f	class:AnonymizePolicyGUI
+codetextarea	AnonymizePolicyGUI.java	/^	JEditorPane codetextarea;$/;"	f	class:AnonymizePolicyGUI
+cookingApplied	AnonymizePolicyGUI.java	/^	boolean cookingApplied=false,uncookApplied=false;$/;"	f	class:ProtocolGroup
+createKeynoteCode	AnonymizePolicyGUI.java	/^	abstract String createKeynoteCode();$/;"	m	interface:HeaderPanelInterface
+createKeynoteCode	AnonymizePolicyGUI.java	/^	public String createKeynoteCode(boolean appendMapiCode) {$/;"	m	class:ProtocolGroup
+createMapiCode	AnonymizePolicyGUI.java	/^	abstract String createMapiCode();$/;"	m	interface:HeaderPanelInterface
+createMapiCode	AnonymizePolicyGUI.java	/^	public String createMapiCode(boolean commentLines,boolean setHTMLHeaders) {$/;"	m	class:ProtocolGroup
+createMapiCodeFromField	AnonymizePolicyGUI.java	/^	public String createMapiCodeFromField(HeaderField h,boolean colorize) {$/;"	m	class:ProtocolGroup
+createToolbar	AnonymizePolicyGUI.java	/^	public void createToolbar(JFrame frame) {$/;"	m	class:AnonymizePolicyGUI
+defaultPolicy	AnonymizePolicyGUI.java	/^	ProtocolGroup defaultPolicy;$/;"	f	class:AnonymizePolicyGUI
+defaultcolor	AnonymizePolicyGUI.java	/^	Color defaultcolor;$/;"	f	class:AnonymizePolicyGUI
+deleteFuncs	AnonymizePolicyGUI.java	/^	public void deleteFuncs(Vector v) {$/;"	m	class:ProtocolGroup
+deletedFuncs	AnonymizePolicyGUI.java	/^	Vector deletedFuncs=null;$/;"	f	class:ProtocolGroup
+deleteframe	AnonymizePolicyGUI.java	/^	JFrame allowframe,deleteframe;$/;"	f	class:AnonymizePolicyGUI
+demoMode	AnonymizePolicyGUI.java	/^	boolean demoMode=false;$/;"	f	class:AnonymizePolicyGUI
+deviation	AnonymizePolicyGUI.java	/^	JTextField median,deviation;$/;"	f	class:HeaderField
+distributionFrame	AnonymizePolicyGUI.java	/^	JFrame distributionFrame;$/;"	f	class:HeaderField
+donotapplyframe	AnonymizePolicyGUI.java	/^	JFrame donotapplyframe;$/;"	f	class:AnonymizePolicyGUI
+drawGUI	AnonymizePolicyGUI.java	/^	public void drawGUI() {$/;"	m	class:AnonymizePolicyGUI
+enforcecmb	AnonymizePolicyGUI.java	/^	JComboBox[] enforcecmb;$/;"	f	class:AnonymizePolicyGUI
+enforcedFunctions	AnonymizePolicyGUI.java	/^	Vector enforcedFunctions=null;$/;"	f	class:ProtocolGroup
+enforceframe	AnonymizePolicyGUI.java	/^	JFrame enforceframe;$/;"	f	class:AnonymizePolicyGUI
+enfparameter1	AnonymizePolicyGUI.java	/^	JTextField[] enfparameter1;$/;"	f	class:AnonymizePolicyGUI
+enfparameter2	AnonymizePolicyGUI.java	/^	JTextField[] enfparameter2;  $/;"	f	class:AnonymizePolicyGUI
+exclusionList	AnonymizePolicyGUI.java	/^	String[] exclusionList=null; \/\/which we should exclude$/;"	f	class:HeaderField
+fields	AnonymizePolicyGUI.java	/^	Vector fields;$/;"	f	class:FTPHeaderPanel
+fields	AnonymizePolicyGUI.java	/^	Vector fields;$/;"	f	class:HTTPHeaderPanel
+fields	AnonymizePolicyGUI.java	/^	Vector fields;$/;"	f	class:ICMPHeaderPanel
+fields	AnonymizePolicyGUI.java	/^	Vector fields;$/;"	f	class:IPHeaderPanel
+fields	AnonymizePolicyGUI.java	/^	Vector fields;$/;"	f	class:TCPHeaderPanel
+fields	AnonymizePolicyGUI.java	/^	Vector fields;$/;"	f	class:UDPHeaderPanel
+fillFrame	AnonymizePolicyGUI.java	/^	JFrame fillFrame;$/;"	f	class:HeaderField
+fillInt	AnonymizePolicyGUI.java	/^	JCheckBox fillString,fillInt;$/;"	f	class:HeaderField
+fillMaxInt	AnonymizePolicyGUI.java	/^	JTextField fillMinInt,fillMaxInt;$/;"	f	class:HeaderField
+fillMinInt	AnonymizePolicyGUI.java	/^	JTextField fillMinInt,fillMaxInt;$/;"	f	class:HeaderField
+fillString	AnonymizePolicyGUI.java	/^	JCheckBox fillString,fillInt;$/;"	f	class:HeaderField
+flist	AnonymizePolicyGUI.java	/^	JList flist;$/;"	f	class:AnonymizePolicyGUI
+fno	AnonymizePolicyGUI.java	/^	int fno=0;$/;"	f	class:ProtocolGroup
+frame	AnonymizePolicyGUI.java	/^	JFrame frame;$/;"	f	class:AnonymizePolicyGUI
+friendly_name	AnonymizePolicyGUI.java	/^	String friendly_name;$/;"	f	class:AnonymizeFunction
+ftpHeaderPanel	AnonymizePolicyGUI.java	/^	FTPHeaderPanel ftpHeaderPanel;$/;"	f	class:ProtocolGroup
+ftp_menuitem	AnonymizePolicyGUI.java	/^	JMenuItem ip_menuitem,tcp_menuitem,udp_menuitem,icmp_menuitem,http_menuitem,ftp_menuitem;$/;"	f	class:AnonymizePolicyGUI
+function	AnonymizePolicyGUI.java	/^	AnonymizeFunction function;	$/;"	f	class:FunctionMenuItem
+functionApplied	AnonymizePolicyGUI.java	/^	String functionApplied; \/\/what function was applied$/;"	f	class:HeaderField
+functionParameters	AnonymizePolicyGUI.java	/^	Vector functionParameters; \/\/paramaters of the function applied$/;"	f	class:HeaderField
+function_name	AnonymizePolicyGUI.java	/^	String function_name;$/;"	f	class:AnonymizeFunction
+functions	AnonymizePolicyGUI.java	/^	Vector functions; \/\/which functions are available$/;"	f	class:HeaderField
+functionsVector	AnonymizePolicyGUI.java	/^	Vector functionsVector;$/;"	f	class:AnonymizePolicyGUI
+functionsVector	AnonymizePolicyGUI.java	/^	Vector functionsVector;$/;"	f	class:FTPHeaderPanel
+functionsVector	AnonymizePolicyGUI.java	/^	Vector functionsVector;$/;"	f	class:HTTPHeaderPanel
+functionsVector	AnonymizePolicyGUI.java	/^	Vector functionsVector;$/;"	f	class:ICMPHeaderPanel
+functionsVector	AnonymizePolicyGUI.java	/^	Vector functionsVector;$/;"	f	class:IPHeaderPanel
+functionsVector	AnonymizePolicyGUI.java	/^	Vector functionsVector;$/;"	f	class:TCPHeaderPanel
+functionsVector	AnonymizePolicyGUI.java	/^	Vector functionsVector;$/;"	f	class:UDPHeaderPanel
+gaussian	AnonymizePolicyGUI.java	/^	JCheckBox gaussian,uniform;$/;"	f	class:HeaderField
+getAllowedFuncs	AnonymizePolicyGUI.java	/^	public Vector getAllowedFuncs() {$/;"	m	class:ProtocolGroup
+getChecksumBehavior	AnonymizePolicyGUI.java	/^	public String getChecksumBehavior() {$/;"	m	class:HeaderField
+getDeletedFuncs	AnonymizePolicyGUI.java	/^	public Vector getDeletedFuncs() {$/;"	m	class:ProtocolGroup
+getEnforceFuncs	AnonymizePolicyGUI.java	/^	public Vector getEnforceFuncs() {$/;"	m	class:ProtocolGroup
+getFTPHeader	AnonymizePolicyGUI.java	/^	public FTPHeaderPanel getFTPHeader() {$/;"	m	class:ProtocolGroup
+getFields	AnonymizePolicyGUI.java	/^	public Vector getFields() {$/;"	m	class:FTPHeaderPanel
+getFields	AnonymizePolicyGUI.java	/^	public Vector getFields() {$/;"	m	class:HTTPHeaderPanel
+getFields	AnonymizePolicyGUI.java	/^	public Vector getFields() {$/;"	m	class:ICMPHeaderPanel
+getFields	AnonymizePolicyGUI.java	/^	public Vector getFields() {$/;"	m	class:IPHeaderPanel
+getFields	AnonymizePolicyGUI.java	/^	public Vector getFields() {$/;"	m	class:TCPHeaderPanel
+getFields	AnonymizePolicyGUI.java	/^	public Vector getFields() {$/;"	m	class:UDPHeaderPanel
+getFriendlyName	AnonymizePolicyGUI.java	/^	public String getFriendlyName() {$/;"	m	class:AnonymizeFunction
+getFunction	AnonymizePolicyGUI.java	/^	public AnonymizeFunction getFunction() {$/;"	m	class:FunctionMenuItem
+getFunctionApplied	AnonymizePolicyGUI.java	/^	public String getFunctionApplied() {$/;"	m	class:HeaderField
+getFunctionParameters	AnonymizePolicyGUI.java	/^	public Vector getFunctionParameters() {$/;"	m	class:HeaderField
+getHTTPHeader	AnonymizePolicyGUI.java	/^	public HTTPHeaderPanel getHTTPHeader() {$/;"	m	class:ProtocolGroup
+getICMPHeader	AnonymizePolicyGUI.java	/^	public ICMPHeaderPanel getICMPHeader() {$/;"	m	class:ProtocolGroup
+getIPHeader	AnonymizePolicyGUI.java	/^	public IPHeaderPanel getIPHeader() {$/;"	m	class:ProtocolGroup
+getName	AnonymizePolicyGUI.java	/^	public String getName() {$/;"	m	class:AnonymizeFunction
+getName	AnonymizePolicyGUI.java	/^	public String getName() {$/;"	m	class:HeaderField
+getName	AnonymizePolicyGUI.java	/^	public String getName() {$/;"	m	class:ProtocolGroup
+getPanelSize	AnonymizePolicyGUI.java	/^	public Dimension getPanelSize() {$/;"	m	class:FTPHeaderPanel
+getPanelSize	AnonymizePolicyGUI.java	/^	public Dimension getPanelSize() {$/;"	m	class:HTTPHeaderPanel
+getPanelSize	AnonymizePolicyGUI.java	/^	public Dimension getPanelSize() {$/;"	m	class:ICMPHeaderPanel
+getPanelSize	AnonymizePolicyGUI.java	/^	public Dimension getPanelSize() {$/;"	m	class:IPHeaderPanel
+getPanelSize	AnonymizePolicyGUI.java	/^	public Dimension getPanelSize() {$/;"	m	class:TCPHeaderPanel
+getPanelSize	AnonymizePolicyGUI.java	/^	public Dimension getPanelSize() {$/;"	m	class:UDPHeaderPanel
+getProtocol	AnonymizePolicyGUI.java	/^	public String getProtocol() {$/;"	m	class:HeaderField
+getTCPHeader	AnonymizePolicyGUI.java	/^	public TCPHeaderPanel getTCPHeader() {$/;"	m	class:ProtocolGroup
+getUDPHeader	AnonymizePolicyGUI.java	/^	public UDPHeaderPanel getUDPHeader() {$/;"	m	class:ProtocolGroup
+groups	AnonymizePolicyGUI.java	/^	Vector groups;$/;"	f	class:AnonymizePolicyGUI
+handleQuit	AnonymizePolicyGUI.java	/^	public void handleQuit() {$/;"	m	class:AnonymizePolicyGUI
+hashAlgorithms	AnonymizePolicyGUI.java	/^	JCheckBox[] hashAlgorithms;$/;"	f	class:HeaderField
+hashAlgorithmsNames	AnonymizePolicyGUI.java	/^	String[] hashAlgorithmsNames;$/;"	f	class:HeaderField
+hashFrame	AnonymizePolicyGUI.java	/^	JFrame hashFrame;$/;"	f	class:HeaderField
+httpHeaderPanel	AnonymizePolicyGUI.java	/^	HTTPHeaderPanel httpHeaderPanel;$/;"	f	class:ProtocolGroup
+http_menuitem	AnonymizePolicyGUI.java	/^	JMenuItem ip_menuitem,tcp_menuitem,udp_menuitem,icmp_menuitem,http_menuitem,ftp_menuitem;$/;"	f	class:AnonymizePolicyGUI
+icmpHeaderPanel	AnonymizePolicyGUI.java	/^	ICMPHeaderPanel icmpHeaderPanel;$/;"	f	class:ProtocolGroup
+icmp_menuitem	AnonymizePolicyGUI.java	/^	JMenuItem ip_menuitem,tcp_menuitem,udp_menuitem,icmp_menuitem,http_menuitem,ftp_menuitem;$/;"	f	class:AnonymizePolicyGUI
+insideExclusionList	AnonymizePolicyGUI.java	/^	public boolean insideExclusionList(String name) {$/;"	m	class:HeaderField
+ipHeaderPanel	AnonymizePolicyGUI.java	/^	IPHeaderPanel ipHeaderPanel;$/;"	f	class:ProtocolGroup
+ip_menuitem	AnonymizePolicyGUI.java	/^	JMenuItem ip_menuitem,tcp_menuitem,udp_menuitem,icmp_menuitem,http_menuitem,ftp_menuitem;$/;"	f	class:AnonymizePolicyGUI
+keynoteprocessFields	AnonymizePolicyGUI.java	/^	public String keynoteprocessFields(Vector v) {$/;"	m	class:ProtocolGroup
+label	AnonymizePolicyGUI.java	/^	JLabel label;$/;"	f	class:HeaderField
+loadFunctions	AnonymizePolicyGUI.java	/^	public void loadFunctions(String filename) {$/;"	m	class:AnonymizePolicyGUI
+lowerlimit	AnonymizePolicyGUI.java	/^	JTextField lowerlimit,upperlimit;$/;"	f	class:HeaderField
+main	AnonymizePolicyGUI.java	/^	public static void main(String[] args) {$/;"	m	class:AnonymizePolicyGUI
+mapiFuncNames	AnonymizePolicyGUI.java	/^	String[] mapiFuncNames;$/;"	f	class:AnonymizePolicyGUI
+mapiprocessFields	AnonymizePolicyGUI.java	/^	public String mapiprocessFields(Vector v,boolean commentLines) {$/;"	m	class:ProtocolGroup
+median	AnonymizePolicyGUI.java	/^	JTextField median,deviation;$/;"	f	class:HeaderField
+mouseClicked	AnonymizePolicyGUI.java	/^	public void mouseClicked(MouseEvent e) {$/;"	m	class:HeaderField
+mouseEntered	AnonymizePolicyGUI.java	/^ 	public void mouseEntered(MouseEvent e) {}$/;"	m	class:HeaderField
+mouseExited	AnonymizePolicyGUI.java	/^ 	public void mouseExited(MouseEvent e) {}$/;"	m	class:HeaderField
+mousePressed	AnonymizePolicyGUI.java	/^ 	public void mousePressed(MouseEvent e) {}$/;"	m	class:HeaderField
+mouseReleased	AnonymizePolicyGUI.java	/^ 	public void mouseReleased(MouseEvent e) {}$/;"	m	class:HeaderField
+name	AnonymizePolicyGUI.java	/^	String name;  \/\/its name in the anonymization header file$/;"	f	class:HeaderField
+name	AnonymizePolicyGUI.java	/^	String name;$/;"	f	class:ProtocolGroup
+parent	AnonymizePolicyGUI.java	/^	JFrame parent=null;$/;"	f	class:HeaderField
+patternString	AnonymizePolicyGUI.java	/^	JTextField patternString;$/;"	f	class:HeaderField
+protocol	AnonymizePolicyGUI.java	/^	String protocol=null; \/\/the protocol it belongs$/;"	f	class:HeaderField
+replaceFrame	AnonymizePolicyGUI.java	/^	JFrame replaceFrame;$/;"	f	class:HeaderField
+replacePatternField	AnonymizePolicyGUI.java	/^	JTextField replacePatternField;$/;"	f	class:HeaderField
+resetProtocolMenuITemIcons	AnonymizePolicyGUI.java	/^	public void resetProtocolMenuITemIcons() {$/;"	m	class:AnonymizePolicyGUI
+savePolicy	AnonymizePolicyGUI.java	/^	public void savePolicy(ProtocolGroup grp) {	$/;"	m	class:AnonymizePolicyGUI
+setEnforceFuncs	AnonymizePolicyGUI.java	/^	public void setEnforceFuncs(Vector v) {$/;"	m	class:ProtocolGroup
+setExclusionList	AnonymizePolicyGUI.java	/^	public void setExclusionList(String[] list) {$/;"	m	class:HeaderField
+setParent	AnonymizePolicyGUI.java	/^	public void setParent(JFrame fr) {$/;"	m	class:HeaderField
+setProtocol	AnonymizePolicyGUI.java	/^	public void setProtocol(String proto) {$/;"	m	class:HeaderField
+showCode	AnonymizePolicyGUI.java	/^	public void showCode(String code,String title) {$/;"	m	class:AnonymizePolicyGUI
+showDistributionInput	AnonymizePolicyGUI.java	/^	public void showDistributionInput() {$/;"	m	class:HeaderField
+showFillInput	AnonymizePolicyGUI.java	/^	public void showFillInput() {$/;"	m	class:HeaderField
+showHashInput	AnonymizePolicyGUI.java	/^	public void showHashInput() {$/;"	m	class:HeaderField
+showReplaceInput	AnonymizePolicyGUI.java	/^	public void showReplaceInput() {$/;"	m	class:HeaderField
+showStripInput	AnonymizePolicyGUI.java	/^	public void showStripInput() {$/;"	m	class:HeaderField
+stripBytesField	AnonymizePolicyGUI.java	/^	JTextField stripBytesField;$/;"	f	class:HeaderField
+stripFrame	AnonymizePolicyGUI.java	/^	JFrame stripFrame;$/;"	f	class:HeaderField
+tabbedPane	AnonymizePolicyGUI.java	/^	JTabbedPane tabbedPane;$/;"	f	class:AnonymizePolicyGUI
+takesNoArguments	AnonymizePolicyGUI.java	/^	boolean takesNoArguments;$/;"	f	class:AnonymizeFunction
+takesNoArguments	AnonymizePolicyGUI.java	/^	public boolean takesNoArguments() {$/;"	m	class:AnonymizeFunction
+tcpHeaderPanel	AnonymizePolicyGUI.java	/^	TCPHeaderPanel tcpHeaderPanel;$/;"	f	class:ProtocolGroup
+tcp_menuitem	AnonymizePolicyGUI.java	/^	JMenuItem ip_menuitem,tcp_menuitem,udp_menuitem,icmp_menuitem,http_menuitem,ftp_menuitem;$/;"	f	class:AnonymizePolicyGUI
+udpHeaderPanel	AnonymizePolicyGUI.java	/^	UDPHeaderPanel udpHeaderPanel;$/;"	f	class:ProtocolGroup
+udp_menuitem	AnonymizePolicyGUI.java	/^	JMenuItem ip_menuitem,tcp_menuitem,udp_menuitem,icmp_menuitem,http_menuitem,ftp_menuitem;$/;"	f	class:AnonymizePolicyGUI
+uncookApplied	AnonymizePolicyGUI.java	/^	boolean cookingApplied=false,uncookApplied=false;$/;"	f	class:ProtocolGroup
+uniform	AnonymizePolicyGUI.java	/^	JCheckBox gaussian,uniform;$/;"	f	class:HeaderField
+upperlimit	AnonymizePolicyGUI.java	/^	JTextField lowerlimit,upperlimit;$/;"	f	class:HeaderField

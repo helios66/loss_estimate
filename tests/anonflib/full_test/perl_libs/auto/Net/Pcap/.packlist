@@ -1,0 +1,7 @@
+/usr/local/bin/pcapinfo
+/usr/local/lib/perl/5.8.8/Net/Pcap.pm
+/usr/local/lib/perl/5.8.8/auto/Net/Pcap/Pcap.bs
+/usr/local/lib/perl/5.8.8/auto/Net/Pcap/Pcap.so
+/usr/local/lib/perl/5.8.8/auto/Net/Pcap/autosplit.ix
+/usr/local/man/man1/pcapinfo.1p
+/usr/local/man/man3/Net::Pcap.3pm

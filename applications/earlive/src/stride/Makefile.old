@@ -1,0 +1,24 @@
+sources = stride.c mod_detect.c decoder.c
+objects = $(sources:.c=.o)
+target = libstride.a
+#DEFINES = -DAPE -DMEL_THRESHOLD=35
+#DEFINES=-DTERMINATE_PUSH -DTERMINATE_WRITE -DCHECK_SLED -DMEL_THRESHOLD=35
+#DEFINES=-DAPE_DECODER -DCHECK_SLED -DMEL_THRESHOLD=35
+
+DEFINES=-DAPE_DECODER -DMEL_THRESHOLD=35
+
+
+INCLUDE = -I.
+CFLAGS = $(INCLUDE)  -O3 -ggdb $(DEFINES)
+RM = rm
+CC = gcc
+
+all: $(target) test-stride
+
+clean:
+	@$(RM) $(target) $(objects) test-stride
+
+$(target): $(target)($(objects)) $(objects)
+
+test-stride: test-stride.c $(target)
+	$(CC) -o test-stride -DPRINT_POSITIVES test-stride.c -lstride -L.

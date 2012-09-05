@@ -1,0 +1,51 @@
+#! /bin/bash
+# Copyright (c) 2007 CESNET.
+# All rights reserved.
+#
+# Author: Sven Ubik
+#
+# /etc/init.d/dag
+#
+### BEGIN INIT INFO
+# Provides:       dag
+# Required-Start: $network
+# Required-Stop:
+# Default-Start:  2 3 5
+# Default-Stop:
+# Description:    Initializes DAG cards
+### END INIT INFO
+
+ABW_DIR=@ABW_DIR@
+MAPI_DIR=@MAPI_DIR@
+DAG_DIR=@DAG_DIR@
+
+INIT_SCRIPT_DIR=/etc/init.d
+DAG_SCRIPT=$ABW_DIR/bin/dag.sh
+DSM_LOADER=$DAG_DIR/bin/dsm_loader
+DSM_CONFIG=$MAPI_DIR/etc/dsm.cfg
+
+case "$1" in
+	start)
+
+		# Edit following lines for your DAG cards
+
+		$DAG_SCRIPT 8.2
+		$DAG_SCRIPT 8.2 2 -f
+		$DSM_LOADER -d /dev/dag0 -f $DSM_CONFIG -v
+		$DSM_LOADER -d /dev/dag2 -f $DSM_CONFIG -v
+	;;
+
+	stop)
+	;;
+
+   restart)
+
+      $INIT_SCRIPT_DIR/dag stop
+      $INIT_SCRIPT_DIR/dag start
+	;;
+
+	*)
+
+	echo "Usage: $0 {start | stop | restart}"
+	exit 1
+esac

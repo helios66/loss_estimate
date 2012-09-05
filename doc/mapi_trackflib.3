@@ -1,0 +1,94 @@
+.\" MAPI TRACKLIB man page
+.\" for a quick overview:
+.\" nroff -man -Tascii mapi_trackflib.3 |less
+.\"
+.TH MAPI_TRACKFLIB 3 "January, 2006"
+.SH NAME
+MAPI trackflib \- Tracker MAPI Function Library
+.SH SYNOPSIS
+.nf
+\fBTRACK_FTP     \fP    Tracks FTP flows.
+\fBTRACK_DC      \fP    Tracks DC++ flows. 
+\fBTRACK_GNUTELLA\fP    Tracks GNUTELLA flows.
+\fBTRACK_EDONKEY\fP     Tracks eDonkey flows.
+\fBTRACK_TORRENT\fP     Tracks BitTorrent flows.
+.fi
+.SH DESCRIPTION
+The TRACKER MAPI function library (trackflib) provides
+a set of predefined functions that track 
+Application Traffic. All TRACKER functions work as a filter to network 
+packets. If a packet is found to belong to the specific protocol then 
+it will be returned to \fBMAPId\fP
+to get processed from subsequent funtions.
+.LP
+All TRACKER functions search the packets for some protocol defined 
+strings and create filters in order to track the flows that contain this traffic.
+.LP
+Type of results: \fBnone\fP.
+.LP
+MAPI TRACKER functions can be applied to an existing network flow using the
+.B mapi_apply_function()
+call.
+For further information regarding 
+.B mapi_apply_function()
+see the
+.BR mapi (3)
+page and the example at the end of this page.
+.\".SH FUNCTIONS
+.\"--------------------------------------------------------
+.SH "EXAMPLES"
+The example below reports periodically
+the number of packets destined to a web server at port 80
+that contain covert GNUTELLA traffic.
+
+.nf
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <mapi.h>
+
+static void die();
+int fd;
+
+int main(int argc,char *argv[]) {
+
+    int counter;
+    unsigned long long *total_packets;
+    mapi_results_t *result;
+ 
+    signal(SIGINT, die);
+    signal(SIGQUIT, die);
+    signal(SIGTERM, die);
+
+    fd = mapi_create_flow("eth0");
+    
+    mapi_apply_function(fd, "BPF_FILTER", "tcp port 80");
+    mapi_apply_function(fd, "TRACK_GNUTELLA");
+    counter = mapi_apply_function(fd,"PKT_COUNTER");
+    
+    mapi_connect(fd);
+
+    while(1) {
+        result = mapi_read_results(fd, counter);
+        total_packets = (unsigned long long*)result->res;
+        printf("total_packets: %lld\\n", *total_packets);
+        sleep(1);
+    }
+    
+    return 0;
+}
+
+void die(){
+    mapi_close_flow(fd);
+    exit(0);
+}
+.fi
+.SH BUGS
+Please send bug reports to mapi@uninett.no
+.SH "SEE ALSO"
+.BR mapi (3), 
+.BR mapi_stdflib (3), 
+.BR mapi_anonflib (3),
+.BR tcpdump (1),
+.BR pcap (3)

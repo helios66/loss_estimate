@@ -1,0 +1,147 @@
+#!/bin/bash
+#
+# Copyright (c) 2006, CESNET
+# All rights reserved.
+#
+# LICENSE TERMS
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright
+#       notice, this list of conditions and the following disclaimer.
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#     * Neither the name of the company nor the names of its contributors 
+#       may be used to endorse or promote products derived from this 
+#       software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+# INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY 
+# AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
+# THE COMPANY OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; 
+# OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+# WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR 
+# OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# 
+# $Id$
+#
+
+export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+MAPI_DIR=@MAPI_DIR@
+ABW_DIR=@ABW_DIR@
+MAPID=${MAPI_DIR}/sbin/mapid
+MAPICOMMD=${MAPI_DIR}/sbin/mapicommd
+
+usage() {
+	echo "Usage: mapi.sh [ -d ] { start | stop | restart }"
+	echo "use -d to start DiMAPI"
+}
+
+test -x $MAPID || exit 0
+test -x $MAPICOMMD || exit 0
+
+if [ $# -lt 1 ]; then
+	usage
+	exit 1
+fi
+
+if [ $1 = "-d" ]; then
+	DIMAPI=1
+	shift
+else
+	DIMAPI=0
+fi
+
+if [ $# -lt 1 ]; then
+	usage
+	exit 1
+fi
+
+case "$1" in
+
+	start)
+
+		PROCESSES_MAPID=`ps -ef|grep mapid|grep -v grep|wc -l`
+		echo "PROCESSES_MAPID: $PROCESSES_MAPID"
+
+		if [ $PROCESSES_MAPID -eq 0 ]; then
+  			echo restarting mapid
+  			$MAPID -d 2>&1 > /dev/null
+		else
+  			echo mapid already running
+		fi
+
+		if [ $DIMAPI -gt 0 ]; then
+			PROCESSES_MAPICOMMD=`ps -ef|grep mapicommd|grep -v grep|wc -l`
+			echo "PROCESSES_MAPICOMMD: $PROCESSES_MAPICOMMD"
+
+			if [ $PROCESSES_MAPICOMMD -eq 0 ]; then
+  				echo restarting mapicommd
+  				$MAPICOMMD -d 2>&1 > /dev/null
+			else
+  				echo mapicommd already running
+			fi
+		fi
+		;;
+
+	stop)
+
+		PROCESSES_MAPID=`ps -ef|grep mapid|grep -v grep|wc -l`
+   		echo "PROCESSES_MAPID: $PROCESSES_MAPID"
+
+   		if [ $PROCESSES_MAPID -gt 0 ]; then
+				echo "killall mapid"
+  				killall mapid
+				sleep 2
+		
+				PROCESSES_MAPID=`ps -ef|grep mapid|grep -v grep|wc -l`
+   			echo "PROCESSES_MAPID: $PROCESSES_MAPID"
+
+   			if [ $PROCESSES_MAPID -gt 0 ]; then
+					echo "killall -s 9 mapid"
+					killall -s 9 mapid 
+				fi
+			fi
+
+		PROCESSES_MAPICOMMD=`ps -ef|grep mapicommd|grep -v grep|wc -l`
+   		echo "PROCESSES_MAPICOMMD: $PROCESSES_MAPICOMMD"
+
+   		if [ $PROCESSES_MAPICOMMD -gt 0 ]; then
+				echo "killall mapicommd"
+  				killall mapicommd
+				sleep 2
+		
+				PROCESSES_MAPICOMMD=`ps -ef|grep mapicommd|grep -v grep|wc -l`
+   			echo "PROCESSES_MAPICOMMD: $PROCESSES_MAPICOMMD"
+
+   			if [ $PROCESSES_MAPICOMMD -gt 0 ]; then
+					echo "killall -s 9 mapicommd"
+					killall -s 9 mapicommd
+				fi
+			fi
+		;;
+
+	restart)
+
+		${ABW_DIR}/bin/mapi.sh stop
+		sleep 1
+		if [ $DIMAPI -gt 0 ]; then
+			${ABW_DIR}/bin/mapi.sh -d start
+		else
+			${ABW_DIR}/bin/mapi.sh start
+		fi
+		;;
+
+	*)
+
+		usage
+		exit 1
+esac
+
+exit 0
